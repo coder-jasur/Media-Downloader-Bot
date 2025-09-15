@@ -2,10 +2,12 @@ from typing import Dict, Any, Callable, Awaitable
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
+from aiogram_dialog import StartMode, ShowMode
+from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 from asyncpg import Connection
 
 from src.app.database.queries.users import UserActions
-
+from src.app.states.language_selection import LanguageSelectionSG
 
 
 class LanguageMiddleware(BaseMiddleware):
@@ -15,28 +17,26 @@ class LanguageMiddleware(BaseMiddleware):
         event: Message | CallbackQuery,
         data: Dict[str, Any]
     ):
+        manager_factory: BgManagerFactoryImpl = data.get("dialog_bg_factory")
         conn: Connection = data["conn"]
         user_actions = UserActions(conn=conn)
         user_data = await user_actions.get_user(event.from_user.id)
 
-        lang = event.from_user.language_code
         if not user_data:
-            if event.from_user.language_code in ["en", "ru", "uz"]:
-                await user_actions.add_user(
-                    tg_id=event.from_user.id,
-                    username=event.from_user.username or event.from_user.first_name,
-                    language=lang
-                )
-                data["lang"] = lang
+            if isinstance(event, CallbackQuery):
                 return await handler(event, data)
-            else:
-                await user_actions.add_user(
-                    tg_id=event.from_user.id,
-                    username=event.from_user.username or event.from_user.first_name,
-                    language="uz"
-                )
-                data["lang"] = "uz"
-                return await handler(event, data)
+
+            manager = manager_factory.bg(
+                data["bot"],
+                event.from_user.id,
+                chat_id=event.from_user.id
+            )
+            await manager.start(
+                LanguageSelectionSG.Language_selection,
+                mode=StartMode.RESET_STACK,
+                show_mode=ShowMode.DELETE_AND_SEND
+            )
+            return
 
         data["lang"] = user_data[3]
         return await handler(event, data)

@@ -1,47 +1,8 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from src.app.keyboards.callback_data import LanguageCD, MusicCD, VideoMusicCD
-from src.app.texts import user_texts, admin_texts, music_and_audio_process_texts
-
-
-def language_keyboard_f(language: str) -> InlineKeyboardMarkup:
-    buttons = InlineKeyboardBuilder()
-
-    if language == "uz":
-        buttons.row(
-            InlineKeyboardButton(text="🇺🇿 O'zbekcha ✅", callback_data=LanguageCD(lang="uz", action="modified").pack())
-        )
-        buttons.row(
-            InlineKeyboardButton(text="🇷🇺 Русский", callback_data=LanguageCD(lang="ru", action="lang").pack())
-        )
-        buttons.row(
-            InlineKeyboardButton(text="🇺🇸 English", callback_data=LanguageCD(lang="en", action="lang").pack())
-        )
-    elif language == "ru":
-        buttons.row(
-            InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data=LanguageCD(lang="uz", action="lang").pack())
-        )
-        buttons.row(
-            InlineKeyboardButton(text="🇷🇺 Русский ✅", callback_data=LanguageCD(lang="ru", action="modified").pack())
-        )
-        buttons.row(
-            InlineKeyboardButton(text="🇺🇸 English", callback_data=LanguageCD(lang="en", action="lang").pack())
-        )
-    elif language == "en":
-        buttons.row(
-            InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data=LanguageCD(lang="uz", action="lang").pack())
-        )
-        buttons.row(
-            InlineKeyboardButton(text="🇷🇺 Русский", callback_data=LanguageCD(lang="ru", action="lang").pack())
-        )
-        buttons.row(
-            InlineKeyboardButton(text="🇺🇸 English ✅", callback_data=LanguageCD(lang="en", action="modified").pack())
-        )
-
-    buttons.row(InlineKeyboardButton(text="✅", callback_data=LanguageCD(lang="none", action="check_lang").pack()))
-
-    return buttons.as_markup()
+from src.app.keyboards.callback_data import MusicCD, VideoMusicCD
+from src.app.texts import admin_menu_texts, music_and_audio_process_texts
 
 
 def video_keyboards(music_name: str, lang: str):
@@ -87,7 +48,7 @@ def back_to_subscriptions_menu_button(lang: str):
 
     buttons.row(
         InlineKeyboardButton(
-            text=admin_texts["back_button"][lang],
+            text=admin_menu_texts["back_button"][lang],
             callback_data="back_to_subscriptions_menu"
         )
     )

@@ -30,12 +30,13 @@ async def create_users_table(conn: Connection):
 
 async def create_channels_table(conn: Connection):
     query = """ 
-        CREATE TABLE IF NOT EXISTS setup_bot(
+        CREATE TABLE IF NOT EXISTS channels(
             channel_id BIGINT PRIMARY KEY NOT NULL,
             channel_name TEXT NOT NULL,
             channel_username TEXT NOT NULL,
             channel_status TEXT NOT NULL,
-            channel_message TEXT,
+            message TEXT,
+            channel_url TEXT,
             created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
         )
     """

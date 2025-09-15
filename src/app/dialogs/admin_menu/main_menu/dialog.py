@@ -2,18 +2,18 @@ from aiogram_dialog import Window, StartMode, Dialog
 from aiogram_dialog.widgets.kbd import Group, Button, Start
 from aiogram_dialog.widgets.text import Format
 
-from src.app.dialogs.admin_menu.menu.getters import lang_getter
+from src.app.dialogs.admin_menu.main_menu.getters import admin_menu_text_getter
+from src.app.states.admin.admin import AdminSG
+from src.app.states.admin.mandatory_subscriptions import MandatorySubscriptionsSG
 
-from src.app.states.admin_states import AdminSG, SubscriptionsSG
-
-admin_menu_window = Dialog(
+admin_menu_dialog = Dialog(
     Window(
-        Format("{choose}"),
+        Format("{title}"),
         Group(
             Start(
-                Format("{setup_bot}"),
-                id="setup_bot",
-                state=SubscriptionsSG.menu,
+                Format("{mandatory_subscriptions_menu}"),
+                id="set_up_bot",
+                state=MandatorySubscriptionsSG.menu,
                 mode=StartMode.RESET_STACK
             ),
             Button(Format("{referrals}"), id="referrals"),
@@ -22,9 +22,9 @@ admin_menu_window = Dialog(
             Button(Format("{user_management}"), id="user_management"),
             Button(Format("{admins_management}"), id="admins_management"),
             Button(Format("{quit}"), id="quit"),
-            width=2,
+            width=1,
         ),
-        getter=lang_getter,
+        getter=admin_menu_text_getter,
         state=AdminSG.menu,
     )
 )

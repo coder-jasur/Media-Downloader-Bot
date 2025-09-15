@@ -10,55 +10,56 @@ class ChannelActions:
         self, channel_id: int,
         channel_name: str,
         channel_username: str,
+        chanenl_url: str,
         channel_status: str = "True"
     ):
         query = """
-            INSERT INTO setup_bot(channel_id, channel_name, channel_username, channel_status) VALUES($1, $2, $3, $4)      
+            INSERT INTO channels(channel_id, channel_name, channel_username, channel_status, channel_url) VALUES($1, $2, $3, $4, $5)      
         """
-        await self._conn.execute(query, channel_id, channel_name, channel_username, channel_status)
+        await self._conn.execute(query, channel_id, channel_name, channel_username, channel_status, chanenl_url)
 
     async def add_channel_message(self, channel_id: int, channel_message: str):
         query = """
-            UPDATE setup_bot
-            SET channel_message = $1
+            UPDATE channels
+            SET message = $1
             WHERE channel_id = $2
         """
         await self._conn.execute(query, channel_message, channel_id)
 
     async def get_channel(self, channel_id: int):
         query = """
-            SELECT * FROM setup_bot WHERE channel_id = $1
+            SELECT * FROM channels WHERE channel_id = $1
         """
         return await self._conn.fetchrow(query, channel_id)
 
     async def get_all_channels(self):
         query = """
-            SELECT * FROM setup_bot
+            SELECT * FROM channels
         """
         return await self._conn.fetch(query)
 
     async def get_channel_message(self, channel_id: int):
         query = """
-            SELECT channel_message FROM setup_bot WHERE channel_id = $1
+            SELECT message FROM channels WHERE channel_id = $1
         """
         return await self._conn.fetchrow(query, channel_id)
 
-    async def update_channel_status(self, new_channel_status: str, channel_id: str):
+    async def update_channel_status(self, new_channel_status: str, channel_id: int):
         query = """
-            UPDATE setup_bot SET channel_status = $1 WHERE channel_id = $2
+            UPDATE channels SET channel_status = $1 WHERE channel_id = $2
         """
         await self._conn.execute(query, new_channel_status, channel_id)
 
     async def delete_channel(self, channel_id: int):
         query = """
-            DELETE FROM setup_bot WHERE channel_id = $1 
+            DELETE FROM channels WHERE channel_id = $1 
         """
         await self._conn.execute(query, channel_id)
 
     async def delete_channel_message(self, channel_id: int):
         query = """
-            UPDATE setup_bot
-            SET channel_message = NULL
+            UPDATE channels
+            SET message = NULL
             WHERE id = $1
         """
         await self._conn.execute(query, channel_id)

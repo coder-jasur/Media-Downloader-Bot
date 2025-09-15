@@ -100,20 +100,25 @@ class VideoDownloaders:
 
     async def tiktok_video_downloader(self, video_url: str, output_file_name: str) -> str and list:
         api_url = f"https://tiktok-dl.akalankanime11.workers.dev/?url={video_url}"
+        print(1)
         save_path = f"./media/videos/{output_file_name}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url) as resp:
                 if resp.status != 200:
-                    print(f"❌ API xato: {resp.status}")
+                    print(f"ERROR: {resp.status}")
                     return
                 data = await resp.json()
+        print(2)
 
         error = []
 
         video_download_url = data.get("non_watermarked_url")
+        print(data.get("file_size"))
 
-        file_size = int(data.get("file_size") / (1024 * 1024), 2)
+        file_size = int(data.get("file_size")) / 1024 * 1024
+
+        print(3)
 
         if not video_download_url:
             error.append("error_in_downloading")
@@ -121,12 +126,13 @@ class VideoDownloaders:
 
         if file_size and file_size > 2000:
             error.append("video_file_is_so_big")
+        print(3)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(video_url) as response:
                 if response.status == 200:
                     async with aiofiles.open(save_path, "wb") as f:
                         await f.write(await response.read())
-                    return save_path
 
+        print(44)
         return save_path, error

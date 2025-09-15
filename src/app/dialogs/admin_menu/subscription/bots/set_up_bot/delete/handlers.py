@@ -3,7 +3,7 @@ from aiogram_dialog import DialogManager
 from asyncpg import Connection
 
 from src.app.database.queries.bots import BotActions
-from src.app.states.admin_states import BotSG
+from src.app.states.admin import BotSG
 
 
 async def on_sure(call: CallbackQuery, _, dialog_manager: DialogManager):

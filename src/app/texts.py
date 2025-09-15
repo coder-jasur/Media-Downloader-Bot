@@ -71,7 +71,7 @@ user_texts = {
 media_process_text = {
     "file_is_so_big": {
         "uz": "⚠️ Faylni hajmi 20MB dan okatta.",
-        "ru": "⚠️ Размер файла превышает 2МБ.",
+        "ru": "⚠️ Размер файла превышает 20МБ.",
         "en": "⚠️ The file size is over 20MB."
     },
     "downloadin_by": {
@@ -198,9 +198,9 @@ photo_process_texts = {
 
 }
 
-admin_texts = {
+admin_menu_texts = {
     "uz": {
-        "setup_bot": "🔗 Majburiy obunalar",
+        "mandatory_subscriptions_menu": "🔗 Majburiy obunalar",
         "referrals": "👥 Referallar",
         "statistics": "📊 Statistika",
         "broadcast": "📢 E’lon tarqatish",
@@ -209,16 +209,16 @@ admin_texts = {
         "quit": "🔙 Menyudan chiqish"
     },
     "en": {
-        "setup_bot": "🔗 Mandatory subscriptions",
+        "mandatory_subscriptions_menu": "🔗 Mandatory subscriptions",
         "referrals": "👥 Referrals",
         "statistics": "📊 Statistics",
         "broadcast": "📢 Send announcement",
         "user_management": "🚫 Manage users",
         "admins_management": "⚙️ Manage admins",
-        "quit": "🔙 Exit menu"
+        "quit": "🔙 Exit main_menu"
     },
     "ru": {
-        "setup_bot": "🔗 Обязательные подписки",
+        "mandatory_subscriptions_menu": "🔗 Обязательные подписки",
         "referrals": "👥 Рефералы",
         "statistics": "📊 Статистика",
         "broadcast": "📢 Отправить объявление",
@@ -231,10 +231,10 @@ admin_texts = {
               "Pastdagilardan kerakli bo‘limni tanlang.",
         "ru": "📋 <b>Меню администратора:</b>\n\n"
               "Выберите нужный раздел из списка ниже.",
-        "en": "📋 <b>Admin menu:</b>\n\n"
+        "en": "📋 <b>Admin main_menu:</b>\n\n"
               "Select the desired section from the list below."
     },
-    "setup_bot": {
+    "channels": {
         "uz": "📢 Kanallar",
         "ru": "📢 Каналы",
         "en": "📢 Channels"
@@ -255,29 +255,49 @@ admin_texts = {
         "en": "➕ Add a bot"
     },
     "back_button": {
-        "uz": "⬅️ Orqaga",
-        "ru": "⬅️ Назад",
-        "en": "⬅️ Back"
+        "uz": "🔙 Orqaga",
+        "ru": "🔙 Назад",
+        "en": "🔙 Back"
     },
     "none_menu_subscriptions": {
         "uz": "📥 Siz hali hechnima qo'shmagansiz.",
         "ru": "📥 Вы пока ничего не добавили.",
         "en": "📥 You haven't added anything yet."
     },
+    "get_channel_link": {
+        "uz": "Kanal yoki gruppani havolasini yuboring",
+        "ru": "Отправить ссылку на канал или группу",
+        "en": "Send a link to the channel or group"
+    },
     "add_channel_title": {
         "uz": "🔗 Kanal yoki guruh qo'shish uchun kanaldan istalgan postni yuboring va botni kanal yoki guruhga qo'shing.",
         "ru": "🔗 Чтобы добавить канал или группу, отправьте любой пост с канала и добавьте бота в канал или группу.",
         "en": "🔗 To add a channel or group, send any post from the channel and add the bot to the channel or group."
     },
+    "already_exists": {
+        "uz": "Kanal yoki gruppa mavjud",
+        "ru": "канала или группы уже есть",
+        "en": "Channel or group already exists"
+    },
+    "defult_link": {
+        "uz": "standart havola",
+        "ru": "стандартная ссылка",
+        "en": "standard link"
+    },
+    "not_forwarded": {
+        "uz": "Xabarni Kanal yoki gruppadan yuboring",
+        "ru": "Отправить сообщение из канала или группы",
+        "en": "Send a message from a Channel or group"
+    },
     "passed_add_channel": {
-        "uz": "✅ Kanal muvaffaqiyatli qo'shildi.",
-        "ru": "✅ Канал успешно добавлен.",
-        "en": "✅ Channel has been successfully added."
+        "uz": "✔️ Kanal muvaffaqiyatli qo'shildi.",
+        "ru": "✔️ Канал успешно добавлен.",
+        "en": "✔️ Channel has been successfully added."
     },
     "failed_add_channel": {
-        "uz": "❌ Kanal qo'shishda xatolik yuz berdi!",
-        "ru": "❌ Произошла ошибка при добавлении канала!",
-        "en": "❌ An error occurred while adding the channel!"
+        "uz": "✖️ Kanal qo'shishda xatolik yuz berdi!",
+        "ru": "✖️ Произошла ошибка при добавлении канала!",
+        "en": "✖️ An error occurred while adding the channel!"
     },
     "get_bot_username": {
         "uz": "🔗 Botning foydalanuvchi nomini yuboring.",
@@ -298,6 +318,11 @@ admin_texts = {
         "uz": "📃 Botga nom bering.",
         "ru": "📃 Дайте бату имя.",
         "en": "📃 Give the bot a name."
+    },
+    "back_button_text": {
+        "uz": "🔙 Orqaga",
+        "ru": "🔙 Назад",
+        "en": "🔙 Back",
     },
     "channel_info_text": {
         "uz": (
@@ -341,13 +366,13 @@ admin_texts = {
         "en": "🗑 Delete referral"
     },
     "add_to_mandatory": {
-        "uz": "➕ Majburiy obunaga qo'shish.",
-        "ru": "➕ Добавить в обязательную подписку.",
-        "en": "➕ Add to mandatory subscription."
+        "uz": "➕ Majburiy obunaga qo'shish",
+        "ru": "➕ Добавить в обязательную подписку",
+        "en": "➕ Add to mandatory subscription"
     },
     "delete_from_mandatory": {
         "uz": "🗑 Majburiy obunadan chiqarish",
-        "ru": "🗑 Удалить из обязательной подписки",
+        "ru": "🗑 Убрать из обязательной подписки",
         "en": "🗑 Remove from mandatory subscription"
     },
     "bot_info_text": {
@@ -414,9 +439,9 @@ admin_texts = {
         "en": "✅ Channel message added successfully!"
     },
     "channel_message_error": {
-        "uz": "❌ Kanal xabarini qo'shishda xatolik yuz berdi. Qaytadan urinib ko'ring.",
-        "ru": "❌ Произошла ошибка при добавлении сообщения канала. Попробуйте снова.",
-        "en": "❌ An error occurred while adding the channel message. Please try again."
+        "uz": "✖️ Kanal xabarini qo'shishda xatolik yuz berdi. Qaytadan urinib ko'ring.",
+        "ru": "✖️ Произошла ошибка при добавлении сообщения канала. Попробуйте снова.",
+        "en": "✖️ An error occurred while adding the channel message. Please try again."
     },
     "pased_delete_bot": {
         "uz": "🗑 Bot Muvafaqiyatli o'chirildi",

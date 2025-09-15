@@ -20,9 +20,11 @@ media_downloader_router = Router()
 async def all_downloader_(message: Message, lang: str):
     for f in [message.audio, message.voice, message.video]:
         if f:
-            if f.file_size > 200 * 1024 * 1024:
+            if f.file_size > 20 * 1024 * 1024:
                 await message.answer(media_process_text["very_big_file"][lang])
                 return
+
+
 
     video_path = None
     photo_path = None
@@ -77,8 +79,14 @@ async def all_downloader_(message: Message, lang: str):
                         )
 
                 elif "www.youtube.com" in message.text:
+                    url = message.text
+                    if "&" in message.text or  "&list=" in message.text:
+                        url = message.text.split("&")[0]
+
+
                     load_msg = await message.answer(video_process_texts["downloading"][lang])
-                    video_path, music_name = await all_downloader.youtube_video_music_downloader(message.text)
+                    video_path, music_name = await all_downloader.youtube_video_music_downloader(url)
+                    print(video_path)
 
                     if music_name:
                         await message.reply_video(
@@ -115,7 +123,7 @@ async def all_downloader_(message: Message, lang: str):
                         )
 
                 else:
-                    await message.edit_text(video_process_texts["wrong_link"][lang])
+                    await message.answer(video_process_texts["wrong_link"][lang])
             else:
                 load_msg = await message.answer(music_and_audio_process_texts["downloading"][lang])
                 music_list, music_title = await all_downloader.download_music_by_avtor_or_music_text(message.text, 5)
@@ -195,7 +203,7 @@ async def send_music_results_from_video(call: CallbackQuery, callback_data: Vide
 
 @media_downloader_router.callback_query(MusicCD.filter())
 async def send_music_search_results(call: CallbackQuery, callback_data: MusicCD, lang: str):
-    load_msg = await call.message.answer(music_and_audio_process_texts["music_is_loading"][lang])
+    load_msg = await call.message.answer(music_and_audio_process_texts["downloading"][lang])
     download_music = AllDownloader(call.message, lang)
     music_path = None
     try:

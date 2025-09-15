@@ -1,62 +1,45 @@
-from _operator import itemgetter
+from operator import itemgetter
 
-from aiogram_dialog import Window, Dialog, StartMode
-from aiogram_dialog.widgets.kbd import Select, Row, Button, Group, SwitchTo, Start
-from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog import Window, Dialog
+from aiogram_dialog.widgets.kbd import Button, Start, Select, Row
+from aiogram_dialog.widgets.text import Format, Case
 
-from src.app.dialogs.admin_menu.subscription.getters import subscriptions_menu_getter
-from src.app.dialogs.admin_menu.subscription.handlers import on_click_subscription_channel, on_click_subscription_bot
-from src.app.states.admin_states import SubscriptionsSG, AdminSG
-from src.app.states.channel import AddChannelSG
+from src.app.dialogs.admin_menu.subscription.getters import mandatory_subscriptions_getter
+from src.app.dialogs.admin_menu.subscription.handlers import on_click_set_up_channel
+from src.app.states.admin.admin import AdminSG
+from src.app.states.admin.mandatory_subscriptions import MandatorySubscriptionsSG, AddChannelSG
 
-subscription_dialog = Dialog(
+mandatory_subscriptions_dialog = Dialog(
     Window(
-        Format("{title}"),
-        Group(
-            Button(
-                Format("{text_channels}"),
-                id="channels"
-            ),
-            Select(
-                Format("{item[0]}"),
-                id="channel_list",
-                item_id_getter=itemgetter(0),
-                items="channels",
-                on_click=on_click_subscription_channel
-            )
+        Case(
+            {
+                "start_msg": Format("{title}"),
+                "not_found": Format("{title}")
+            },
+            selector="msg_type"
         ),
-        Group(
-            Button(
-                Format("{text_bots}"),
-                id="bots"
-            ),
-            Select(
-                Format("{item[0]}"),
-                id="bots_list",
-                item_id_getter=itemgetter(0),
-                items="bots",
-                on_click=on_click_subscription_bot
-            )
+        Button(Format("{channels_sign}"), id="channels"),
+        Select(
+            Format("{item[1]}"),
+            id="mandatory_subscriptions",
+            item_id_getter=itemgetter(0),
+            items="channels",
+            on_click=on_click_set_up_channel
+        ),
+        Button(Format("{bots_sign}"), id="bots"),
+        Select(
+            Format("{item[1]}"),
+            id="mandatory_subscriptions",
+            item_id_getter=itemgetter(0),
+            items="bots",
+            on_click=on_click_set_up_channel
         ),
         Row(
-            Start(
-                Format("{add_channel_text}"),
-                id="channel",
-                state=AddChannelSG.add_channel,
-                mode=StartMode.RESET_STACK
-            ),
-            SwitchTo(
-                Format("{add_bot_text}"),
-                id="bot",
-                state=SubscriptionsSG.add_bot_username
-            )
+            Start(Format("{add_channel}"), id="add_channel", state=AddChannelSG.get_channel_data),
+            Start(Format("{add_bot}"), id="add_bot", state=...)
         ),
-        Start(
-            text=Format("{back_button_text}"),
-            id="back",
-            state=AdminSG.menu
-        ),
-        state=SubscriptionsSG.menu,
-        getter=subscriptions_menu_getter
+        Start(Format("{back_button_text}"), id="back", state=AdminSG.menu),
+        state=MandatorySubscriptionsSG.menu,
+        getter=mandatory_subscriptions_getter
     )
 )

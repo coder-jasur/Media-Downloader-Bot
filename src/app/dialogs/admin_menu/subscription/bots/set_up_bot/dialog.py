@@ -2,9 +2,9 @@ from aiogram_dialog import Window
 from aiogram_dialog.widgets.kbd import Group, Button, SwitchTo
 from aiogram_dialog.widgets.text import Format
 
-from src.app.dialogs.admin_menu.subscription.bots.setup_bot.getters import bot_data_getter
-from src.app.dialogs.admin_menu.subscription.bots.setup_bot.handlers import on_mandatoriy_subscription_set_up
-from src.app.states.admin_states import BotSG, SubscriptionsSG
+from src.app.dialogs.admin_menu.subscription.bots.set_up_bot.getters import bot_data_getter
+from src.app.dialogs.admin_menu.subscription.bots.set_up_bot.handlers import on_mandatoriy_subscription_set_up
+from src.app.states.admin import BotSG, SubscriptionsSG
 
 bot_setup_menu = Window(
     Format("{title}"),

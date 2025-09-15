@@ -21,7 +21,7 @@ async def bot_commands(bot: Bot, settings: Settings):
                 BotCommand(command="start", description="Restart"),
                 BotCommand(command="language", description="Choose a language"),
                 BotCommand(command="about", description="About"),
-                BotCommand(command="admin_menu", description="Admin menu")
+                BotCommand(command="admin_menu", description="Admin main_menu")
             ],
             scope=scoupe
         )

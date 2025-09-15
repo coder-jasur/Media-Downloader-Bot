@@ -6,8 +6,10 @@ from yt_dlp import YoutubeDL
 
 class Searchs:
 
+    def __init__(self):
+        self.youtubedl = YoutubeDL
     def get_media_info(self, video_url: str) -> Dict:
-        with YoutubeDL({}) as ydl:
+        with self.youtubedl({}) as ydl:
             info = ydl.extract_info(video_url, download=False)
 
             if "entries" in info:
@@ -29,7 +31,7 @@ class Searchs:
         search_query = f"ytsearch{max_count}:{music_text_or_avtor}"
         musics = []
 
-        with YoutubeDL(ydl_opts) as ydl:
+        with self.youtubedl(ydl_opts) as ydl:
             result = ydl.extract_info(search_query, download=False)
             entries = result.get("entries", [])
 

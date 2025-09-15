@@ -2,12 +2,12 @@ from aiogram_dialog import Window
 from aiogram_dialog.widgets.kbd import Row, Button, SwitchTo
 from aiogram_dialog.widgets.text import Format
 
-from src.app.dialogs.admin_menu.subscription.bots.setup_bot.delete.getters import (
+from src.app.dialogs.admin_menu.subscription.bots.set_up_bot.delete.getters import (
     delete_bot_text_getter,
     delete_text_getter_pass, delete_text_getter_failed
 )
-from src.app.dialogs.admin_menu.subscription.bots.setup_bot.delete.handlers import on_sure
-from src.app.states.admin_states import BotSG, SubscriptionsSG
+from src.app.dialogs.admin_menu.subscription.bots.set_up_bot.delete.handlers import on_sure
+from src.app.states.admin import BotSG, SubscriptionsSG
 
 delete_bot = Window(
     Format("{title}"),
