@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram.types import Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import MessageInput
@@ -8,8 +9,8 @@ from src.app.states.admin.mandatory_subscriptions import AddChannelSG
 
 
 async def take_channel_data(message: Message, _, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data.get("conn")
-    channel_actions = ChannelActions(conn)
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
+    channel_actions = ChannelActions(pool)
     try:
         if not message.forward_from_chat:
             dialog_manager.dialog_data["msg_type"] = "not_forwarded"
@@ -40,8 +41,8 @@ async def take_channel_data(message: Message, _, dialog_manager: DialogManager):
         return
 
 async def add_channel(_, message_input: MessageInput, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data.get("conn")
-    channel_actions = ChannelActions(conn)
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
+    channel_actions = ChannelActions(pool)
 
     try:
         channel_data = dialog_manager.dialog_data.get("channel_data")
@@ -60,9 +61,8 @@ async def add_channel(_, message_input: MessageInput, dialog_manager: DialogMana
         await dialog_manager.switch_to(AddChannelSG.get_channel_link)
 
 async def on_add_channel_by_defult_link(_, __, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data.get("conn")
-    channel_actions = ChannelActions(conn)
-    print()
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
+    channel_actions = ChannelActions(pool)
 
     try:
         channel_data = dialog_manager.dialog_data.get("channel_data")

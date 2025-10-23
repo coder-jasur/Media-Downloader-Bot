@@ -1,0 +1,10 @@
+aiogram
+aiogram-dialog
+asyncpg
+environs
+colorlog
+pyyaml
+instagrapi
+yt_dlp
+shazamio
+pedalboard

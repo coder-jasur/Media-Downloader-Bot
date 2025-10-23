@@ -1,16 +1,19 @@
+from pprint import pprint
 from typing import Dict, Any, Callable, Awaitable
 
+import asyncpg
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
 from aiogram_dialog import StartMode, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
-from asyncpg import Connection
 
 from src.app.database.queries.users import UserActions
 from src.app.states.language_selection import LanguageSelectionSG
 
 
 class LanguageMiddleware(BaseMiddleware):
+    def __init__(self, pool: asyncpg.Pool):
+        self.pool = pool
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
@@ -18,8 +21,8 @@ class LanguageMiddleware(BaseMiddleware):
         data: Dict[str, Any]
     ):
         manager_factory: BgManagerFactoryImpl = data.get("dialog_bg_factory")
-        conn: Connection = data["conn"]
-        user_actions = UserActions(conn=conn)
+
+        user_actions = UserActions(pool=self.pool)
         user_data = await user_actions.get_user(event.from_user.id)
 
         if not user_data:

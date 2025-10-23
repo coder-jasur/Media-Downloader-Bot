@@ -35,14 +35,11 @@ async def main():
     register_all_dialogs(dialogs_router)
     dp.include_router(dialogs_router)
     register_all_router(dp, settings)
-    register_middleware(dp, pool, settings)
+    register_middleware(dp, settings, pool)
     setup_dialogs(dp)
 
-
-
-
-
     bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode="HTML"))
+
     await bot_commands(bot, settings)
 
     await dp.start_polling(bot)

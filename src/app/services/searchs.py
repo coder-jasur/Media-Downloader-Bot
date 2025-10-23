@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict
 
 import yt_dlp
 from yt_dlp import YoutubeDL
@@ -21,15 +21,20 @@ class Searchs:
                 "filesize_mb": round(filesize / (1024 * 1024), 2) if filesize else None,
             }
 
-    def search_music(self, music_text_or_avtor: str, max_count: int = 5) -> List[Dict]:
+    def search_music(self, music_text_or_avtor_name: str, max_count: int = 5):
+        errors = []
+        musics = []
         ydl_opts = {
             "quiet": True,
             "match_filter": yt_dlp.utils.match_filter_func("duration < 600"),
             "skip_download": True,
         }
 
-        search_query = f"ytsearch{max_count}:{music_text_or_avtor}"
-        musics = []
+        search_query = f"ytsearch{max_count}:{music_text_or_avtor_name}"
+        print(11111)
+        print(music_text_or_avtor_name)
+        print(111)
+
 
         with self.youtubedl(ydl_opts) as ydl:
             result = ydl.extract_info(search_query, download=False)
@@ -45,7 +50,6 @@ class Searchs:
                     )
                     if best_audio:
                         filesize = best_audio["filesize"]
-
                 duration = entry.get("duration")
                 musics.append({
                     "title": entry.get("title", ""),
@@ -54,4 +58,7 @@ class Searchs:
                     "filesize_mb": round(filesize / (1024 * 1024), 2) if filesize else None,
                 })
 
-        return musics
+        if not musics:
+            errors.append("music_not_found")
+
+        return musics, entries, errors

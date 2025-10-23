@@ -1,11 +1,6 @@
-from typing import Dict
-
 from aiogram_dialog import DialogManager
-from asyncpg import Connection
 
-from src.app.database.queries.channels import ChannelActions
 from src.app.texts import admin_menu_texts
-
 
 
 async def add_channel_instruction_getter(dialog_manager: DialogManager, lang: str, **_):

@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram_dialog import DialogManager
 from asyncpg import Connection
 
@@ -5,10 +6,10 @@ from src.app.database.queries.channels import ChannelActions
 from src.app.texts import admin_menu_texts
 
 
-async def get_texts_delete_channel_dialog(dialog_manager: DialogManager,conn: Connection, lang: str, **_):
+async def get_texts_delete_channel_dialog(dialog_manager: DialogManager, pool: asyncpg.Pool, lang: str, **_):
     channel_id = dialog_manager.dialog_data.get("channel_id")
 
-    channel_actions = ChannelActions(conn)
+    channel_actions = ChannelActions(pool)
 
     channel_data = await channel_actions.get_channel(channel_id)
 

@@ -1,17 +1,16 @@
+import asyncpg
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
-from asyncpg import Connection
 
 from src.app.database.queries.bots import BotActions
-from src.app.states.admin import BotSG
 
 
 async def on_sure(call: CallbackQuery, _, dialog_manager: DialogManager):
     bot_username = dialog_manager.dialog_data.get("bot_username")
-    conn: Connection = dialog_manager.middleware_data["conn"]
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
 
     try:
-        channel_actions = BotActions(conn)
+        channel_actions = BotActions(pool)
         await channel_actions.delete_bot(bot_username)
 
         await dialog_manager.switch_to(BotSG.delete_sure_pass)

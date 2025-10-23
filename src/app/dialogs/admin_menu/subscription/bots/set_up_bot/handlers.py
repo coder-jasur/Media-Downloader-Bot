@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from asyncpg import Connection
@@ -8,10 +9,10 @@ from src.app.texts import admin_menu_texts
 
 
 async def on_mandatoriy_subscription_set_up(call: CallbackQuery, _, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data["conn"]
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
     lang: str = dialog_manager.middleware_data["lang"]
     bot_username = dialog_manager.dialog_data.get("bot_username")
-    channel_actions = BotActions(conn)
+    channel_actions = BotActions(pool)
     channel_data = await channel_actions.get_bot(bot_username)
     if channel_data[3] == "True":
         await channel_actions.update_bot_status("False", bot_username)

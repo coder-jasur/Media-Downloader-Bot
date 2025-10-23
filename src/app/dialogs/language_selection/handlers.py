@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from asyncpg import Connection
@@ -6,8 +7,8 @@ from src.app.database.queries.users import UserActions
 
 
 async def on_language_selection(_, button: Button, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data.get("conn")
-    user_actions = UserActions(conn)
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
+    user_actions = UserActions(pool)
 
     try:
         user = dialog_manager.event.from_user

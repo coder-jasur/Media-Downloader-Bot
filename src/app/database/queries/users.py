@@ -1,43 +1,49 @@
 from typing import AsyncGenerator
 
-from asyncpg import Connection
+import asyncpg
 
 
 class UserActions:
 
-    def __init__(self, conn: Connection):
-        self._conn = conn
+    def __init__(self, pool: asyncpg.Pool):
+        self.pool = pool
 
     async def add_user(self, tg_id: int, username: str, language: str, status: str = "unblocked"):
         query = """
             INSERT INTO users(tg_id, username, status, language) VALUES($1, $2, $3, $4)      
         """
-        await self._conn.execute(query, tg_id, username, status, language)
+        async with self.pool.acquire() as conn:
+
+            await conn.execute(query, tg_id, username, status, language)
 
 
     async def get_user(self, tg_id: int):
         query = """
             SELECT * FROM users WHERE tg_id = $1
         """
-        return await self._conn.fetchrow(query, tg_id)
+        async with self.pool.acquire() as conn:
+            return await conn.fetchrow(query, tg_id)
 
     async def get_all_user(self):
         query = """
             SELECT * FROM users 
         """
-        return await self._conn.fetch(query)
+        async with self.pool.acquire() as conn:
+            return await conn.fetch(query)
 
     async def update_user_status(self, new_status: str, tg_id: int):
         query = """
             UPDATE users SET status = $1 WHERE tg_id = $2
         """
-        await self._conn.execute(query, new_status, tg_id)
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, new_status, tg_id)
 
     async def update_user_lang(self, new_lang: str, tg_id: int):
         query = """
             UPDATE users SET language = $1 WHERE tg_id = $2
         """
-        await self._conn.execute(query, new_lang, tg_id)
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, new_lang, tg_id)
 
     async def get_user_ids_batch(self, offset: int, limit: int = 5000) -> list[int]:
 
@@ -47,7 +53,8 @@ class UserActions:
             LIMIT $1 OFFSET $2
         """
 
-        rows = await self._conn.fetch(query, limit, offset)
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, limit, offset)
 
         return [row['tg_id'] for row in rows]
 

@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from asyncpg import Connection
@@ -8,10 +9,10 @@ from src.app.texts import admin_menu_texts
 
 
 async def on_click_mandatory_subscription(call: CallbackQuery, _, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data["conn"]
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
     lang: str = dialog_manager.middleware_data["lang"]
     channel_id = dialog_manager.dialog_data.get("channel_id")
-    channel_actions = ChannelActions(conn)
+    channel_actions = ChannelActions(pool)
     print(channel_id)
     channel_data = await channel_actions.get_channel(int(channel_id))
     if channel_data[3] == "True":
@@ -26,10 +27,10 @@ async def on_click_mandatory_subscription(call: CallbackQuery, _, dialog_manager
 
 
 async def on_delete_channel_message(call: CallbackQuery, _, dialog_manager: DialogManager):
-    conn: Connection = dialog_manager.middleware_data["conn"]
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
     lang: str = dialog_manager.middleware_data["lang"]
     channel_id = dialog_manager.dialog_data.get("channel_id")
-    channel_actions = ChannelActions(conn)
+    channel_actions = ChannelActions(pool)
     try:
         await channel_actions.delete_channel_message(channel_id)
         await call.answer(admin_menu_texts["passed_message_delete"][lang])

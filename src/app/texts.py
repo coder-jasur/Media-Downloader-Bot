@@ -1,12 +1,12 @@
 user_texts = {
     "start": {
         "uz": (
-            "🔥 Assalomu alaykum. @TopLoaderBot ga Xush kelibsiz.\n"
+            "🔥 Assalomu alaykum! @TopLoaderBot ga xush kelibsiz.\n\n"
             "Bot orqali quyidagilarni yuklab olishingiz mumkin:\n\n"
             "📥 Video yuklab olish funksiyasi:\n"
-            "• Instagram - reels, storis, post + musiqa\n"
-            "• TikTok - video + musiqa\n"
-            "• YouTube - video, shorts + musiqa\n\n"
+            "• Instagram — reels, stories, post + musiqa yoki audio\n"
+            "• TikTok — video + musiqa yoki audio\n"
+            "• YouTube — video, shorts + musiqa yoki audio\n\n"
             "🎵 Shazam funksiyasi:\n"
             "• Qo‘shiq nomi yoki ijrochi ismi\n"
             "• Qo‘shiq matni\n"
@@ -14,15 +14,19 @@ user_texts = {
             "• Video\n"
             "• Audio\n"
             "• Video xabar\n\n"
-            "🚀 Yuklab olmoqchi bo'lgan videoga havolani yuboring!"
+            "🎛 Audio va musiqaga effekt berish funksiyasi:\n"
+            "🌀 8D format\n"
+            "⚡️ Tezlashtirilgan format\n"
+            "🐢 Sekinlashtirilgan format\n\n"
+            "🚀 Yuklab olmoqchi bo‘lgan videoga havolani yuboring!"
         ),
         "ru": (
-            "🔥 Здравствуйте. Добро пожаловать в @TopLoaderBot.\n"
-            "Через бота вы можете скачать:\n\n"
+            "🔥 Здравствуйте! Добро пожаловать в @TopLoaderBot.\n\n"
+            "Через бота вы можете скачать следующие материалы:\n\n"
             "📥 Функция загрузки видео:\n"
-            "• Instagram - reels, сторис, пост + музыка\n"
-            "• TikTok - видео + музыка\n"
-            "• YouTube - видео, shorts + музыка\n\n"
+            "• Instagram — reels, stories, пост + музыка или аудио\n"
+            "• TikTok — видео + музыка или аудио\n"
+            "• YouTube — видео, shorts + музыка или аудио\n\n"
             "🎵 Функция Shazam:\n"
             "• Название песни или имя исполнителя\n"
             "• Текст песни\n"
@@ -30,15 +34,19 @@ user_texts = {
             "• Видео\n"
             "• Аудио\n"
             "• Видеосообщение\n\n"
+            "🎛 Функция добавления эффектов к аудио и музыке:\n"
+            "🌀 8D формат\n"
+            "⚡️ Ускоренная версия\n"
+            "🐢 Замедленная версия\n\n"
             "🚀 Отправьте ссылку на видео, которое хотите скачать!"
         ),
         "en": (
-            "🔥 Hello. Welcome to @TopLoaderBot.\n"
-            "With this bot you can download:\n\n"
+            "🔥 Hello! Welcome to @TopLoaderBot.\n\n"
+            "With this bot you can download the following:\n\n"
             "📥 Video download feature:\n"
-            "• Instagram - reels, stories, post + music\n"
-            "• TikTok - video + music\n"
-            "• YouTube - video, shorts + music\n\n"
+            "• Instagram — reels, stories, post + music or audio\n"
+            "• TikTok — video + music or audio\n"
+            "• YouTube — video, shorts + music or audio\n\n"
             "🎵 Shazam feature:\n"
             "• Song name or artist name\n"
             "• Song lyrics\n"
@@ -46,7 +54,11 @@ user_texts = {
             "• Video\n"
             "• Audio\n"
             "• Video message\n\n"
-            "🚀 Send the link to the video you want to download!"
+            "🎛 Audio and music effects feature:\n"
+            "🌀 8D format\n"
+            "⚡️ Speed-up version\n"
+            "🐢 Slowed-down version\n\n"
+            "🚀 Send the link of the video you want to download!"
         ),
     },
 
@@ -154,17 +166,41 @@ music_and_audio_process_texts = {
         "ru": "📥 Музыка загружается...",
         "en": "📥 Music is loading..."
     },
-
+    "downloading_audio": {
+        "uz": "📥 Audio yuklanmoqda...",
+        "ru": "📥 Аудио загружается...",
+        "en": "📥 Audio is loading..."
+    },
     "download_is": {
         "uz": "📥 Musiqani yuklab olish",
         "ru": "📥 Скачать музыку",
         "en": "📥 Download Music"
+    },
+    "send_audio": {
+        "uz": "📥 Audio yuboring",
+        "ru": "📥 Отправьте аудио",
+        "en": "📥 Send an audio file"
+    },
+    "audio_effect": {
+        "uz": "Audio ga effekt berish uchun pastdagilardan birini tanlang",
+        "ru": "Выберите один из эффектов ниже, чтобы применить к аудио",
+        "en": "Choose one of the effects below to apply to the audio",
+    },
+    "is_being_processed": {
+        "uz": "🎵 qayta ishlanmoqda",
+        "ru": "🎵 обрабатывается...",
+        "en": "🎵 is being processed..."
     },
 
     "error_in_downloading": {
         "uz": "⚠️ Musiqani yuklab olishda xatolik yuzberdi iltimos qayta urinib ko'ring.",
         "ru": "⚠️ Произошла ошибка при загрузке музыки, попробуйте еще раз.",
         "en": "⚠️ There was an error downloading the music, please try again."
+    },
+    "error_in_downloading_audio": {
+        "uz": "⚠️ Audioni yuklab olishda xatolik yuzberdi iltimos qayta urinib ko'ring.",
+        "ru": "⚠️ Произошла ошибка при загрузке аудио, попробуйте еще раз.",
+        "en": "⚠️ There was an error downloading the audio, please try again."
     },
     "not_found": {
         "uz": "⚠️ Afsuski musiqa topilmadi iltimos qayta urinib ko'ring.",
@@ -176,6 +212,11 @@ music_and_audio_process_texts = {
         "uz": "⚠️ Musiqa faylni hajmi 20MB dan okatta.",
         "ru": "⚠️ Размер музыки файла превышает 20МБ.",
         "en": "⚠️ The music file size is over 20MB."
+    },
+    "erro_in_downloading": {
+        "uz": "⚠️ Yuklab olishda xatolik yuzberdi iltimos qayta urinib ko'ring.",
+        "ru": "⚠️ Произошла ошибка при загрузке, попробуйте еще раз.",
+        "en": "⚠️ There was an error downloading, please try again."
     }
 }
 

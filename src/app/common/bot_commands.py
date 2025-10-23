@@ -9,7 +9,9 @@ async def bot_commands(bot: Bot, settings: Settings):
         commands=[
             BotCommand(command="start", description="Restart"),
             BotCommand(command="language", description="Choose a language"),
-            BotCommand(command="about", description="About")
+            BotCommand(command="audio_effect", description="Audio effect"),
+            BotCommand(command="about", description="About"),
+
         ],
     )
 
@@ -20,6 +22,7 @@ async def bot_commands(bot: Bot, settings: Settings):
             commands=[
                 BotCommand(command="start", description="Restart"),
                 BotCommand(command="language", description="Choose a language"),
+                BotCommand(command="audio_effect", description="Audio effect"),
                 BotCommand(command="about", description="About"),
                 BotCommand(command="admin_menu", description="Admin main_menu")
             ],

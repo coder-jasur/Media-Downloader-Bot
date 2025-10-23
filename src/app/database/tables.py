@@ -33,7 +33,7 @@ async def create_channels_table(conn: Connection):
         CREATE TABLE IF NOT EXISTS channels(
             channel_id BIGINT PRIMARY KEY NOT NULL,
             channel_name TEXT NOT NULL,
-            channel_username TEXT NOT NULL,
+            channel_username TEXT,
             channel_status TEXT NOT NULL,
             message TEXT,
             channel_url TEXT,

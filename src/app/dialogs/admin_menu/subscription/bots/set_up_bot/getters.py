@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram_dialog import DialogManager
 from asyncpg import Connection
 
@@ -7,9 +8,9 @@ from src.app.texts import admin_menu_texts
 
 async def bot_data_getter(dialog_manager: DialogManager, _):
     bot_username = dialog_manager.start_data.get("bot_username")
-    conn: Connection = dialog_manager.middleware_data["conn"]
+    pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
     lang: str = dialog_manager.middleware_data["lang"]
-    bot_actions = BotActions(conn)
+    bot_actions = BotActions(pool)
 
     bot_data = await bot_actions.get_bot(bot_username)
     bot_status = admin_menu_texts["mandatoriy_subscription"][bot_data[2]][lang]

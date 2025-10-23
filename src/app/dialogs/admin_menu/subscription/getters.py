@@ -1,3 +1,4 @@
+import asyncpg
 from aiogram_dialog import DialogManager
 from asyncpg import Connection
 
@@ -6,9 +7,9 @@ from src.app.database.queries.channels import ChannelActions
 from src.app.texts import admin_menu_texts
 
 
-async def mandatory_subscriptions_getter(dialog_manager: DialogManager, conn: Connection, lang: str,  **_):
-    channel_actions = ChannelActions(conn)
-    bot_actions = BotActions(conn)
+async def mandatory_subscriptions_getter(dialog_manager: DialogManager, pool: asyncpg.Pool, lang: str,  **_):
+    channel_actions = ChannelActions(pool)
+    bot_actions = BotActions(pool)
 
     try:
         channels_data = await channel_actions.get_all_channels()
