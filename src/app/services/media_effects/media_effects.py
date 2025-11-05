@@ -1,71 +1,72 @@
 import asyncio
 import os
 
+import aiofiles
 import aiohttp
+from aiogram import Bot
 from aiogram.types import Message
 
-from src.app.services.media_downloaders.utils.audio import AudioUtils
 from src.app.services.media_downloaders.utils.files import get_video_file_name, get_audio_file_name
+from src.app.services.media_effects.utils.media_effects import MediaEffectsTools
+from src.app.utils.enums.general import GeneralEffectAction, MediaType
 
 
 class MediaEffects:
-    def __init__(self, message: Message):
+    def __init__(self, message: Message, bot: Bot):
+        self.bot = bot
         self.message = message
-        self.audio_utils = AudioUtils()
+        self.media_effect_obj = MediaEffectsTools()
 
 
-    async def media_effect(self, effect_type: str) -> str | None:
-        input_media_path = None
-        media_type = None
-        file_id = None
+    async def media_effect(
+            self,
+            effect_type: GeneralEffectAction,
+            media_type: MediaType,
+    ) -> str | None:
+        out_put_media_path = None
+        media_input_path = None
 
         try:
-            if self.message.video:
-                media_type = "video"
-                file_id = self.message.video.file_id
-            elif self.message.audio:
-                media_type = "audio"
-                file_id = self.message.audio.file_id
+            if media_type == MediaType.VIDEO:
+                media_file_id = self.message.video.file_id
+                media_input_path = f"./media/videos/{effect_type.value}-{get_video_file_name()}"
 
-            elif self.message.voice:
-                media_type = "audio"
-                file_id = self.message.voice.file_id
+            elif media_type == MediaType.AUDIO:
+                media_file_id = self.message.audio.file_id
+                media_input_path = f"./media/audios/{effect_type.value}-{get_audio_file_name()}"
 
+            elif media_type == MediaType.VOICE:
+                media_file_id = self.message.voice.file_id
+                media_input_path = f"./media/audios/{effect_type.value}-{get_audio_file_name()}"
 
-            file = await self.message.bot.get_file(file_id)
-            file_path = file.file_path
-
-            if self.message.voice or self.message.audio:
-                input_media_path = f"./media/audios/{get_audio_file_name()}.mp3"
-                output_media_path = f"./media/audios/{get_audio_file_name()}_{effect_type}.mp3"
             else:
-                input_media_path = f"./media/videos/{get_video_file_name()}"
-                output_media_path = f"./media/videos/{effect_type}_{get_video_file_name()}"
-
-            file_url = f"https://api.telegram.org/file/bot{self.message.bot.token}/{file_path}"
+                return None
+            file = await self.bot.get_file(media_file_id)
+            file_path = file.file_path
+            url = f"https://api.telegram.org/file/bot{self.bot.token}/{file_path}"
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(file_url) as response:
+                async with session.get(url) as response:
                     if response.status == 200:
-                        with open(input_media_path, "wb") as f:
-                            f.write(await response.read())
-                    else:
-                        print("ERROR")
+                        async with aiofiles.open(media_input_path, "wb") as f:
+                            await f.write(await response.read())
 
-            output_media_path = await asyncio.to_thread(
-                self.audio_utils.apply_effect,
-                input_media_path,
-                output_media_path,
-                effect_type,
-                media_type
-            )
+            if media_type in [MediaType.AUDIO, MediaType.VOICE]:
+                out_put_media_path = await self.media_effect_obj.audio_effects(media_input_path, effect_type)
 
-            return output_media_path
+            elif media_type == MediaType.VIDEO:
+                out_put_media_path = await self.media_effect_obj.video_effects(media_input_path, effect_type)
+
+            return out_put_media_path
 
         except Exception as e:
-            print(f"ERROR", e)
+            print("ERROR in media_effect:", e)
             return None
 
         finally:
-            if input_media_path and await asyncio.to_thread(os.path.exists, input_media_path):
-                await asyncio.to_thread(os.remove, input_media_path)
+            try:
+                if media_input_path and await asyncio.to_thread(os.path.exists, media_input_path):
+                    await asyncio.to_thread(os.remove, media_input_path)
+            except Exception as ex:
+                print("Cleanup error:", ex)
+

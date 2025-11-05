@@ -1,48 +1,45 @@
+import asyncio
+from pprint import pprint
+
 import aiofiles
 import aiohttp
+from yt_dlp import YoutubeDL
 
 from src.app.services.media_downloaders.utils.files import get_video_file_name
+from src.app.utils.enums.error import DownloadError
 
 
 class TikTokDownloaders:
     def __init__(self):
         self.aiohttp = aiohttp
 
-
     async def tiktok_video_downloader(self, video_url: str):
         file_name = get_video_file_name()
-
-        api_url = f"https://tiktok-dl.akalankanime11.workers.dev/?url={video_url}"
-
         video_output_path = f"./media/videos/{file_name}"
+        errors = []
         try:
+            def tiktok_downloader():
+                ydl_opts = {"format": "best", "outtmpl": video_output_path}
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_url, download=True)
 
-            async with self.aiohttp.ClientSession() as session:
-                async with session.get(api_url) as resp:
-                    if resp.status != 200:
-                        print(f"ERROR: {resp.status}")
-                        return
-                    data = await resp.json()
+                    return info
 
-            error = []
+            data  = await asyncio.to_thread(tiktok_downloader)
 
-            video_download_url = data.get("non_watermarked_url")
+            if int(data["filesize"] / 1024 / 1024) > 2000:
+                errors.append(DownloadError.FILE_TOO_BIG)
+                return None, errors
 
-            file_size = int(data.get("file_size")) / 1024 * 1024
+            if not data:
+                errors.append(DownloadError.DOWNLOAD_ERROR)
+                return None, errors
 
-            if not video_download_url:
-                error.append("error_in_downloading")
-                return video_download_url, error
 
-            if file_size and file_size > 2000:
-                error.append("video_file_is_so_big")
 
-            async with self.aiohttp.ClientSession() as session:
-                async with session.get(video_download_url) as response:
-                    if response.status == 200:
-                        async with aiofiles.open(video_output_path, "wb") as f:
-                            await f.write(await response.read())
+            return video_output_path, errors
 
-            return video_output_path, error
         except Exception as e:
-            print("ERROR", e)
+            print(f"⚠️ Xatolik: {e}")
+            errors.append(str(e))
+            return None, errors

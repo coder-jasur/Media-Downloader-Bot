@@ -5,6 +5,8 @@ import os
 import asyncpg
 from aiogram import Dispatcher, Bot, Router
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
 from aiogram_dialog import setup_dialogs
 
 from logs.loggger_conf import setup_logging
@@ -15,6 +17,7 @@ from src.app.database.tables import create_database_tables
 from src.app.dialogs import register_all_dialogs
 from src.app.handlers import register_all_router
 from src.app.middleware import register_middleware
+from src.app.requirements_updater import requirements_updater
 
 logger = logging.getLogger(__name__)
 
@@ -31,27 +34,45 @@ async def main():
         await create_database_tables(conn)
 
     dp = Dispatcher()
+
     dialogs_router = Router()
+    other_router = Router()
+
     register_all_dialogs(dialogs_router)
-    dp.include_router(dialogs_router)
+
     register_all_router(dp, settings)
-    register_middleware(dp, settings, pool)
+
+    dp.include_router(dialogs_router)
+    dp.include_router(other_router)
+
     setup_dialogs(dp)
 
-    bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode="HTML"))
+    register_middleware(dp, settings, pool)
+
+    session = AiohttpSession(api=TelegramAPIServer.from_base(settings.tg_api_server_url))
+
+    bot = Bot(token=settings.bot_token, session=session, default=DefaultBotProperties(parse_mode="HTML"))
 
     await bot_commands(bot, settings)
 
     await dp.start_polling(bot)
 
 
+
+
 if __name__ == "__main__":
     try:
         setup_logging("logs/logger.yml")
-        os.makedirs("media", exist_ok=True)
-        os.makedirs("./media/videos", exist_ok=True)
-        os.makedirs("./media/audios", exist_ok=True)
-        os.makedirs("./media/photos", exist_ok=True)
-        asyncio.run(main())
+        os.makedirs("media/videos", exist_ok=True)
+        os.makedirs("media/audios", exist_ok=True)
+        os.makedirs("media/photos", exist_ok=True)
+
+        async def runner():
+            task_bot = asyncio.create_task(main())
+            task_updater = asyncio.create_task(requirements_updater())
+            await asyncio.gather(task_bot, task_updater)
+
+        asyncio.run(runner())
+
     except Exception as e:
         logger.exception(e)

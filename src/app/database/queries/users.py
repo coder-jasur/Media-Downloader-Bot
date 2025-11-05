@@ -1,9 +1,10 @@
+from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
 import asyncpg
 
 
-class UserActions:
+class UserDataBaseActions:
 
     def __init__(self, pool: asyncpg.Pool):
         self.pool = pool
@@ -73,3 +74,38 @@ class UserActions:
 
             yield user_ids, offset
             offset += len(user_ids)
+
+    async def get_user_statistics(self):
+        now = datetime.utcnow()
+        one_day_ago = now - timedelta(days=1)
+        one_week_ago = now - timedelta(days=7)
+        one_month_ago = now - timedelta(days=30)
+        one_year_ago = now - timedelta(days=365)
+
+        async with self.pool.acquire() as conn:
+            users = await conn.fetch("SELECT created_at FROM users")
+
+        total_users = len(users)
+        today_users = 0
+        week_users = 0
+        month_users = 0
+        year_users = 0
+
+        for (joined_at_str,) in users:
+            joined_at = datetime.fromisoformat(str(joined_at_str))
+            if joined_at > one_day_ago:
+                today_users += 1
+            if joined_at > one_week_ago:
+                week_users += 1
+            if joined_at > one_month_ago:
+                month_users += 1
+            if joined_at > one_year_ago:
+                year_users += 1
+
+        return {
+            "today": today_users,
+            "week": week_users,
+            "month": month_users,
+            "year": year_users,
+            "total": total_users
+        }

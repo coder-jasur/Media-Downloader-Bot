@@ -35,7 +35,6 @@ async def create_channels_table(conn: Connection):
             channel_name TEXT NOT NULL,
             channel_username TEXT,
             channel_status TEXT NOT NULL,
-            message TEXT,
             channel_url TEXT,
             created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
         )
@@ -48,6 +47,7 @@ async def create_bots_table(conn: Connection) -> None:
             bot_name TEXT NOT NULL,
             bot_username TEXT NOT NULL,
             bot_status TEXT NOT NULL,
+            bot_url TEXT NOT NULL,
             created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
         )
     """
@@ -57,12 +57,13 @@ async def create_bots_table(conn: Connection) -> None:
 
 async def create_table_referrals(conn: Connection) -> None:
     query = """
-        CREATE TABLE IF NOT EXISTS referrals (
-            referral_id TEXT PRIMARY KEY NOT NULL,
-            referral_name TEXT NOT NULL,
-            referral_members_count INTEGER NOT NULL,
+        CREATE TABLE IF NOT EXISTS referals (
+            referal_id TEXT PRIMARY KEY NOT NULL,
+            referal_name TEXT NOT NULL,
+            referal_members_count INTEGER NOT NULL,
             created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
         )
     """
 
     await conn.execute(query)
+

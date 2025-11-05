@@ -3,12 +3,14 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from asyncpg import Connection
 
-from src.app.database.queries.users import UserActions
+from src.app.database.queries.users import UserDataBaseActions
+from src.app.utils.i18n import get_translator
 
 
 async def on_language_selection(_, button: Button, dialog_manager: DialogManager):
     pool: asyncpg.Pool = dialog_manager.middleware_data.get("pool")
-    user_actions = UserActions(pool)
+    user_actions = UserDataBaseActions(pool)
+
 
     try:
         user = dialog_manager.event.from_user
@@ -21,4 +23,10 @@ async def on_language_selection(_, button: Button, dialog_manager: DialogManager
 
     except Exception as e:
         print("ERROR", e)
+    finally:
+        await dialog_manager.done()
+        user = dialog_manager.event.from_user
+        user_data = await user_actions.get_user(user.id)
+        _ = get_translator(user_data[3]).gettext
+        await dialog_manager.event.message.edit_text(_("Start text"))
 

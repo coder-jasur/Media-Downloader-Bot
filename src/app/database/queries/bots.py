@@ -1,7 +1,7 @@
 import asyncpg
 
 
-class BotActions:
+class BotDataBaseActions:
     def __init__(self, pool: asyncpg.Pool):
         self.pool = pool
 
@@ -9,13 +9,14 @@ class BotActions:
         self,
         bot_name: str,
         bot_username: str,
+        bot_url: str,
         bot_status: str = "True"
     ):
         query = """
-            INSERT INTO bots (bot_name, bot_username, bot_status) VALUES($1, $2, $3)      
+            INSERT INTO bots (bot_name, bot_username, bot_url, bot_status) VALUES($1, $2, $3, $4)      
         """
         async with self.pool.acquire() as conn:
-            await conn.execute(query, bot_name, bot_username, bot_status)
+            await conn.execute(query, bot_name, bot_username, bot_url, bot_status)
 
     async def get_bot(self, bot_username: str):
         query = """

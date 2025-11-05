@@ -7,3 +7,5 @@ class InstagramMediaType(Enum):
     STORIES = "stories"
     HIGHLIGHT = "highlight"
     PROFILE_PHOTO = "profil_photo"
+
+

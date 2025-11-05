@@ -4,7 +4,7 @@ from typing import Any
 from shazamio import Shazam
 from yt_dlp import YoutubeDL
 
-from src.app.services.media_downloaders.utils.files import get_audio_file_name, get_photo_file_name
+from src.app.services.media_downloaders.utils.files import get_audio_file_name
 
 
 class MusicDownloader:
@@ -25,8 +25,7 @@ class MusicDownloader:
 
     async def download_music_from_youtube(self, video_id: str) -> tuple[str, Any] | None:
         video_url = f"https://www.youtube.com/watch?v={video_id}"
-        print(video_id)
-        print(video_url)
+
         music_output_path = f"./media/audios/{get_audio_file_name()}"
         yt_dlp_opts = {
             "format": "bestaudio/best",
