@@ -31,32 +31,42 @@ class AllDownloader:
         self._ = get_translator(lang).gettext
 
     async def instagram_downloaders(self, url: str, media_type: InstagramMediaType):
-        errors = []
-        file_path = None
-        if media_type == InstagramMediaType.REELS:
-            file_path, error = await self.instagram_downloader.instagram_reels_downloader(url)
-        elif media_type == InstagramMediaType.POST:
-            file_path, error = await self.instagram_downloader.instagram_post_downloader(url)
-        elif media_type == InstagramMediaType.STORIES:
-            await self.instagram_downloader.login()
-            file_path, error = await self.instagram_downloader.instagram_stories_downloader(url)
-        elif media_type == InstagramMediaType.HIGHLIGHT:
-            await self.instagram_downloader.login()
-            file_path, error = await self.instagram_downloader.instagram_highlight_downloader(url)
-        elif media_type == InstagramMediaType.PROFILE_PHOTO:
-            file_path, error = await self.instagram_downloader.instagram_profil_photo_downloader(url)
-        else:
-            error = DownloadError.INVALID_MEDIA_TYPE
+        await self.instagram_downloader.login(False)  # ✅ Login har doim ishlasin
 
-        errors.append(error)
+        file_path = None
+        errors = []
+
+        downloader_map = {
+            InstagramMediaType.REELS: self.instagram_downloader.instagram_reels_downloader,
+            InstagramMediaType.POST: self.instagram_downloader.instagram_post_downloader,
+            InstagramMediaType.STORIES: self.instagram_downloader.instagram_stories_downloader,
+            InstagramMediaType.HIGHLIGHT: self.instagram_downloader.instagram_highlight_downloader,
+            InstagramMediaType.PROFILE_PHOTO: self.instagram_downloader.instagram_profil_photo_downloader,
+        }
+
+        if media_type not in downloader_map:
+            await self.message.answer(self._("Invalid media type"))
+            return None
+
+        try:
+            file_path, error_list = await downloader_map[media_type](url)
+
+            if not file_path and DownloadError.DOWNLOAD_ERROR in error_list:
+                await self.instagram_downloader.login(True)
+                file_path, error_list = await downloader_map[media_type](url)
+
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            error_list = [DownloadError.DOWNLOAD_ERROR]
+
+        errors.extend(error_list)
 
         if DownloadError.FILE_TOO_BIG in errors:
-            await self.message.answer(self._("File size big to 2 gb"))
+            await self.message.answer(self._("File size bigger than 2GB"))
         elif DownloadError.DOWNLOAD_ERROR in errors:
-            await self.message.answer(self._("Error in loading file"))
+            await self.message.answer(self._("Error while downloading file"))
 
         return file_path
-
     async def youtube_downloaders(self, url: str):
         file_path, errors = await asyncio.to_thread(self.youtube_downloader.youtube_video_and_shorts_downloader, url)
 
@@ -83,6 +93,9 @@ class AllDownloader:
             media_type: MediaType = None,
             some_data: str = None
     ):
+        print(actions)
+        print(media_type)
+
         media_file_id = None
         media_path = None
         thumbnail_path = None
@@ -91,7 +104,6 @@ class AllDownloader:
             if actions == MusicAction.SEARCH_BY_TEXT:
                 musics_data, entries, errors = await asyncio.to_thread(self.search.search_music, some_data, 10)
                 for entry in entries:
-                    print(entry.get("thumbnail", ""))
                     thumbnail_path = await download_media_in_internet(
                         entry.get("thumbnail", ""),
                         get_photo_file_name(),
@@ -153,6 +165,7 @@ class AllDownloader:
                 await self.message.bot.download_file(file_path, media_path)
 
                 if media_type in [MediaType.VOICE, MediaType.VIDEO_NOTE]:
+                    print("not error")
                     audio_path = None
                     if MediaType.VIDEO_NOTE:
                         audio_path = f"./media/audios/{get_audio_file_name()}"
@@ -161,12 +174,13 @@ class AllDownloader:
                             media_path,
                             audio_path
                         )
+
                     music_texts = await self.auido_utils.speech_to_text(media_path or audio_path, some_data)
                     print(music_texts)
 
                     musics_data, entries, errors = await asyncio.to_thread(self.search.search_music, music_texts, 10)
+                    print(musics_data)
                     for entry in entries:
-                        print(entry.get("thumbnail", ""))
                         thumbnail_path = await download_media_in_internet(
                             entry.get("thumbnail", ""),
                             get_photo_file_name(),
@@ -201,6 +215,7 @@ class AllDownloader:
 
 
                 music_name = await self.music_downloader.find_song_name_by_video_audio_voice_video_note(media_path)
+
 
 
                 if not music_name:

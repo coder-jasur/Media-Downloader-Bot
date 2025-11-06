@@ -442,7 +442,6 @@ async def all_downloader_(message: Message, lang: str):
         elif message.video or message.video_note or message.audio or message.voice:
             load_msg = await message.answer(_("Music is loading"))
 
-            # Media turini aniqlash
             media_type = None
             if message.video:
                 media_type = MediaType.VIDEO
@@ -452,6 +451,7 @@ async def all_downloader_(message: Message, lang: str):
                 media_type = MediaType.AUDIO
             elif message.voice:
                 media_type = MediaType.VOICE
+                print("voice")
 
             if media_type:
                 music_list, music_title, thumbnail_path = await downloader.music_downloaders(

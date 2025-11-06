@@ -1,3 +1,4 @@
+import re
 from pprint import pprint
 from typing import Dict, Any, Callable, Awaitable
 
@@ -22,6 +23,11 @@ class LanguageMiddleware(BaseMiddleware):
             event: Message | CallbackQuery,
             data: Dict[str, Any]
     ) -> Any:
+        # ✅ Bot accountlarini skip qilish
+        if event.from_user.is_bot:
+            print(f"⚠️ Skipping bot account: {event.from_user.id}")
+            return  # Handler'ga o'tkazmaslik
+
         manager_factory: BgManagerFactoryImpl = data.get("dialog_bg_factory")
         user_actions = UserDataBaseActions(pool=self.pool)
 
@@ -33,18 +39,27 @@ class LanguageMiddleware(BaseMiddleware):
 
         # User mavjud
         if user_data:
-            data["lang"] = user_data[3]  # user_data[3] = language
+            data["lang"] = user_data[3]
             return await handler(event, data)
 
-        # New user - show language selection
-        # ⚠️ Skip CallbackQuery (ma'lumotga ega emas)
+        # CallbackQuery - skip
         if isinstance(event, CallbackQuery):
             return await handler(event, data)
 
-        # Message event - start dialog
+        # Message emas - skip
         if not isinstance(event, Message):
             return await handler(event, data)
 
+        # Referral kodni ajratib olish
+        referral_code = None
+        if event.text:
+            pattern = re.compile(r"^/start\s+([A-Za-z0-9]{10,20})$")
+            match = pattern.match(event.text)
+            if match:
+                referral_code = match.group(1)
+                print(f"🔗 Referral code detected: {referral_code}")
+
+        # Til tanlash dialogini ochish
         try:
             manager = manager_factory.bg(
                 data["bot"],
@@ -54,18 +69,19 @@ class LanguageMiddleware(BaseMiddleware):
 
             await manager.start(
                 LanguageSelectionSG.Language_selection,
+                data={"referral_code": referral_code} if referral_code else None,
                 mode=StartMode.RESET_STACK,
                 show_mode=ShowMode.DELETE_AND_SEND
             )
 
         except TelegramForbiddenError:
-            print(f"⚠️ User {event.from_user.id} blocked bot")
-            # Bot xabar yubora olmadi - dialog skip
+            print(f"⚠️ User {event.from_user.id} blocked bot or is a bot account")
             return
 
         except Exception as e:
             print(f"❌ Unexpected error: {e}")
+            import traceback
+            traceback.print_exc()
             return await handler(event, data)
-
 
 

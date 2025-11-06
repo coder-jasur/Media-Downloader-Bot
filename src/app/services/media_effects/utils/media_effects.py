@@ -1,6 +1,5 @@
 import asyncio
 import os
-import subprocess
 
 from pedalboard import Pedalboard
 from pedalboard_native import HighpassFilter, Reverb, LowpassFilter, Compressor

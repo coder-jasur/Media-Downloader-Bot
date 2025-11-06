@@ -1,41 +1,34 @@
-services:
-  api:
-    image: aiogram/telegram-bot-api:latest
-    restart: always
-    environment:
-      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
-      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
-      TELEGRAM_LOCAL: ${TELEGRAM_LOCAL:-1}
-    ports:
-      - "8081:8081"
-    volumes:
-      - telegram-bot-api-data:/var/lib/telegram-bot-api
-    networks:
-      - tg_bot
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+version: '3.8'
 
+services:
   postgres:
-    image: postgres:14-alpine
+    container_name: toploaderdatabase
+    image: postgres:14.5
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: on-failure
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    restart: always
     ports:
       - "5433:5432"
     networks:
       - tg_bot
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
+
+  api:
+    image: aiogram/telegram-bot-api:latest
+    restart: always
+    environment:
+      TELEGRAM_API_ID: $TELEGRAM_API_ID
+      TELEGRAM_API_HASH: $TELEGRAM_API_HASH
+      TELEGRAM_LOCAL: $TELEGRAM_LOCAL
+    ports:
+      - "8081:8081"
+    volumes:
+      - /var/lib/telegram-bot-api:/var/lib/telegram-bot-api
+    networks:
+      - tg_bot
 
   bot:
     image: "${BOT_IMAGE_NAME:-tg_bot-image}"
@@ -43,22 +36,18 @@ services:
     stop_signal: SIGINT
     build:
       context: .
-    working_dir: "/app"
-    env_file:
-      - .env
+    working_dir: "/usr/src/app/${BOT_NAME:-tg_bot}"
+    volumes:
+    - .:/usr/src/app/${BOT_NAME:-tg_bot}
     restart: always
     depends_on:
-      api:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+      - postgres
+      - api
+    env_file:
+      - ".env"
     networks:
-      - tg_bot
+    - tg_bot
 
 networks:
   tg_bot:
     driver: bridge
-
-volumes:
-  pgdata:
-  telegram-bot-api-data:

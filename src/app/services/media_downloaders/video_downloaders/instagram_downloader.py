@@ -41,9 +41,12 @@ class InstagramDownloaders:
         self.max_retries = 5
         self.delay_between_items = 0.5
 
-
-    async def login(self) -> None:
+    async def login(self, re_login: bool) -> None:
         try:
+            if re_login:
+                if await asyncio.to_thread(os.path.exists, self.session_file):
+                    await asyncio.to_thread(os.remove, self.session_file)
+
             session_exists = await asyncio.to_thread(os.path.exists, self.session_file)
 
             if session_exists:
@@ -53,21 +56,22 @@ class InstagramDownloaders:
                         self.client.login,
                         self.settings.instagram_username,
                         self.settings.instagram_password,
-                        False,
-                        ""
+                        False, ""
                     )
                     print("✅ Logged in using saved session")
                     return
                 except Exception as e:
-                    print(f"⚠️ Session file invalid or expired: {e}")
+                    print(f"⚠️ Session expired or invalid: {e}")
                     await asyncio.to_thread(os.remove, self.session_file)
+
+
 
             print("🔐 Logging in to Instagram...")
             await asyncio.to_thread(
                 self.client.login,
                 self.settings.instagram_username,
                 self.settings.instagram_password,
-                False,
+                re_login,
             )
 
             settings = await asyncio.to_thread(self.client.get_settings)
@@ -75,7 +79,7 @@ class InstagramDownloaders:
             async with aiofiles.open(self.session_file, "w", encoding="utf-8") as f:
                 await f.write(json_data)
 
-            print("💾 Session saved successfully")
+            print("💾 New session saved successfully")
 
         except Exception as e:
             print(f"🚫 Login error: {e}")
@@ -143,6 +147,7 @@ class InstagramDownloaders:
             self,
             stories_url: str
     ) -> Tuple[Optional[Path], list]:
+        print(stories_url)
 
         errors = []
 
@@ -152,7 +157,6 @@ class InstagramDownloaders:
                 timeout=self.timeout
             )
 
-            # Story haqida ma'lumot olish (photo/video aniqlash uchun)
             story = await asyncio.to_thread(self.client.story_info, story_pk)
             media_type = story.media_type  # 1=photo, 2=video
 
@@ -192,7 +196,7 @@ class InstagramDownloaders:
 
         except Exception as e:
             print(f"❌ Error downloading story: {e}")
-            errors.append(DownloadError.UNKNOWN_ERROR)
+            errors.append(DownloadError.DOWNLOAD_ERROR)
             return None, errors
 
         except asyncio.TimeoutError:

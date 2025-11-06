@@ -49,9 +49,9 @@ async def main():
 
     register_middleware(dp, settings, pool)
 
-    session = AiohttpSession(api=TelegramAPIServer.from_base(settings.tg_api_server_url))
+    # session = AiohttpSession(api=TelegramAPIServer.from_base(settings.tg_api_server_url))
 
-    bot = Bot(token=settings.bot_token, session=session, default=DefaultBotProperties(parse_mode="HTML"))
+    bot = Bot(token=settings.bot_token)#, session=session, default=DefaultBotProperties(parse_mode="HTML"))
 
     await bot_commands(bot, settings)
 

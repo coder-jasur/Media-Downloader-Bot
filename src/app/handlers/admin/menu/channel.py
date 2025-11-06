@@ -86,7 +86,7 @@ async def _show_channel_menu(call, channel_id, pool, lang):
 
     await call.message.edit_text(
         _("Channel set up menu title").format(
-            channel[0], channel[1], channel[2], channel[3], channel[4]
+            channel[0], channel[1], channel[2], channel[3], channel[2]
         ),
         reply_markup=modified_channel_menu(
             channel_id,
@@ -198,7 +198,7 @@ async def add_channel_with_default_url(
         channel_info.id,
         channel_info.full_name,
         channel_info.username or None,
-        channel_info.invite_link
+        f"https://t.me/{channel_info.username[1:]}"
     )
 
     await state.clear()
