@@ -23,11 +23,9 @@ class LanguageMiddleware(BaseMiddleware):
             event: Message | CallbackQuery,
             data: Dict[str, Any]
     ) -> Any:
-        # ✅ Bot accountlarini skip qilish
         if event.from_user.is_bot:
             print(f"⚠️ Skipping bot account: {event.from_user.id}")
-            return  # Handler'ga o'tkazmaslik
-
+            return
         manager_factory: BgManagerFactoryImpl = data.get("dialog_bg_factory")
         user_actions = UserDataBaseActions(pool=self.pool)
 

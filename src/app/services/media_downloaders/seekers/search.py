@@ -1,90 +1,98 @@
+import asyncio
 import time
 from typing import Dict, List, Any, Optional
 
 import aiohttp
 from yt_dlp import YoutubeDL
-import yt_dlp
 
 from src.app.core.config import Settings
 from src.app.utils.enums.error import DownloadError
-
-
 
 LASTFM_API_URL = "http://ws.audioscrobbler.com/2.0/"
 
 _API_CACHE: Dict[str, tuple] = {}
 CACHE_TTL_SECONDS = 60 * 60
 
+
 class YouTubeSearcher:
 
     def __init__(self):
-        self.yt_dlp = yt_dlp
         self.settings = Settings()
 
-    def get_media_info(self, video_url: str) -> Optional[Dict[str, Any]]:
+    async def get_media_info(self, video_url: str) -> Optional[Dict[str, Any]]:
         try:
-            with YoutubeDL({'quiet': True}) as ydl:
-                info = ydl.extract_info(video_url, download=False)
+            def extract_info():
+                with YoutubeDL({'quiet': True}) as ydl:
+                    info = ydl.extract_info(video_url, download=False)
+                    if "entries" in info:
+                        info = info["entries"][0]
 
-                if "entries" in info:
-                    info = info["entries"][0]
+                    filesize = info.get("filesize") or info.get("filesize_approx")
+                    return {
+                        "title": info.get("title"),
+                        "duration": info.get("duration"),
+                        "filesize_mb": round(filesize / (1024 * 1024), 2) if filesize else None,
+                    }
 
-                filesize = info.get("filesize") or info.get("filesize_approx")
+            return await asyncio.to_thread(extract_info)
 
-                return {
-                    "title": info.get("title"),
-                    "duration": info.get("duration"),
-                    "filesize_mb": round(filesize / (1024 * 1024), 2) if filesize else None,
-                }
         except Exception as e:
             print("ERROR", e)
             return None
 
-    def search_music(
+    async def search_music(
             self,
             query: str,
             max_count: int = 5
-    ) -> tuple[list[dict[str, str | None | Any]], Any, list[str]] | None:
-        ydl_opts = {
-            "quiet": True,
-            "match_filter": self.yt_dlp.utils.match_filter_func("duration < 600"),
-            "skip_download": True,
-        }
+    ) -> tuple[List[Dict[str, Any]], Any, List[str]] | None:
 
-        search_query = f"ytsearch{max_count}:{query}"
-        results = []
-        errors = []
+        def extract_search():
+            ydl_opts = {
+                "quiet": True,
+                "match_filter": lambda info: info.get('duration', 0) < 600,
+                "skip_download": True,
+            }
 
-        try:
-            with YoutubeDL(ydl_opts) as ydl:
-                data = ydl.extract_info(search_query, download=False)
+            search_query = f"ytsearch{max_count}:{query}"
+            results = []
+            errors = []
 
-                if not data:
-                    errors.append(DownloadError.MUSIC_NOT_FOUND)
-                entries = data.get("entries", [])
+            try:
+                with YoutubeDL(ydl_opts) as ydl:
+                    data = ydl.extract_info(search_query, download=False)
 
-                for entry in entries:
-                    filesize = None
-                    if entry.get("formats"):
-                        best_audio = max(
-                            (f for f in entry["formats"] if f.get("filesize")),
-                            key=lambda f: f["filesize"],
-                            default=None
-                        )
-                        if best_audio:
-                            filesize = best_audio["filesize"]
+                    if not data:
+                        errors.append(DownloadError.MUSIC_NOT_FOUND)
+                        return [], [], errors
 
-                    duration = entry.get("duration", 0)
-                    results.append({
-                        "title": entry.get("title", ""),
-                        "id": entry.get("id", ""),
-                        "duration": f"{duration // 60}:{duration % 60:02d}" if duration else None,
-                        "filesize_mb": round(filesize / (1024 * 1024), 2) if filesize else None,
-                    })
+                    entries = data.get("entries", [])
+
+                    for entry in entries:
+                        filesize = None
+                        if entry.get("formats"):
+                            best_audio = max(
+                                (f for f in entry["formats"] if f.get("filesize")),
+                                key=lambda f: f["filesize"],
+                                default=None
+                            )
+                            if best_audio:
+                                filesize = best_audio["filesize"]
+
+                        duration = entry.get("duration", 0)
+                        results.append({
+                            "title": entry.get("title", ""),
+                            "id": entry.get("id", ""),
+                            "duration": f"{duration // 60}:{duration % 60:02d}" if duration else None,
+                            "filesize_mb": round(filesize / (1024 * 1024), 2) if filesize else None,
+                        })
+
                 return results, entries, errors
-        except Exception as e:
-            print("ERROR", e)
-            return None
+
+            except Exception as e:
+                print("ERROR", e)
+                return [], [], [str(e)]
+
+        return await asyncio.to_thread(extract_search)
 
     def cache_get(self, key: str):
         rec = _API_CACHE.get(key)
@@ -100,7 +108,6 @@ class YouTubeSearcher:
         _API_CACHE[key] = (time.time(), value)
 
     async def get_top_music(self, limit: int = 50) -> List[Dict[str, str]]:
-
         cache_key = f"lastfm:global:{limit}"
         cached = self.cache_get(cache_key)
         if cached is not None:
@@ -132,7 +139,3 @@ class YouTubeSearcher:
 
         self.cache_set(cache_key, result)
         return result
-
-
-
-

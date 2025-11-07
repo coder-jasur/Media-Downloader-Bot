@@ -20,7 +20,6 @@ async def on_language_selection(
     selected_lang = button.widget_id  # "uz", "ru", "en" ...
 
     try:
-        # 1️⃣ Referral kodni olish va qayta ishlash
         start_data = dialog_manager.start_data
         referral_code = None
 
