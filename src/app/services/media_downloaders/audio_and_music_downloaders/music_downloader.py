@@ -13,8 +13,7 @@ class MusicDownloader:
 
     async def find_song_name_by_video_audio_voice_video_note(self, media_path: str) -> str:
         try:
-            # Agar recognize sync bo'lsa, asyncio.to_thread ishlatamiz
-            out = await asyncio.to_thread(self.shazam.recognize, media_path)
+            out = await self.shazam.recognize(media_path)
             track = out.get("track", {})
             title = track.get("title", "")
             subtitle = track.get("subtitle", "")

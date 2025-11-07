@@ -111,7 +111,7 @@ class AllDownloader:
         try:
 
             if actions == MusicAction.SEARCH_BY_TEXT:
-                musics_data, entries, errors = await asyncio.to_thread(self.search.search_music, some_data, 10)
+                musics_data, entries, errors = await self.search.search_music(some_data, 10)
                 for entry in entries:
                     thumbnail_path = await download_media_in_internet(
                         entry.get("thumbnail", ""),
@@ -228,7 +228,7 @@ class AllDownloader:
                 if not music_name:
                     await self.message.answer(self._("Music not found"))
 
-                musics_data, entries, errors = await asyncio.to_thread(self.search.search_music, music_name, 10)
+                musics_data, entries, errors = await self.search.search_music(music_name, 10)
 
                 for entry in entries:
                     print(entry.get("thumbnail", ""))
