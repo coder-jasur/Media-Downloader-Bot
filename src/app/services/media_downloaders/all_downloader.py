@@ -231,12 +231,7 @@ class AllDownloader:
 
                     return musics_list, music_title, thumbnail_path
 
-                print("musicname")
                 music_name = await self.music_downloader.find_song_name_by_video_audio_voice_video_note(media_path)
-                print(music_name)
-                print("musicname")
-
-
 
                 if not music_name:
                     await self.message.answer(self._("Music not found"))
@@ -244,7 +239,6 @@ class AllDownloader:
                 musics_data, entries, errors = await self.search.search_music(music_name, 10)
 
                 for entry in entries:
-                    print(entry.get("thumbnail", ""))
                     thumbnail_path = await download_media_in_internet(
                         entry.get("thumbnail", ""),
                         get_photo_file_name(),

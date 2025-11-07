@@ -13,15 +13,11 @@ class MusicDownloader:
 
     async def find_song_name_by_video_audio_voice_video_note(self, media_path: str) -> str:
         try:
-            print(media_path)
             out = await self.shazam.recognize(media_path)
-            print(out)
             track = out.get("track", {})
-            print(track)
             title = track.get("title", "")
             subtitle = track.get("subtitle", "")
             music_title = f"{title} {subtitle}".strip()
-            print(music_title)
             return music_title
         except Exception as e:
             print("ERROR in Shazam recognize:", e)
