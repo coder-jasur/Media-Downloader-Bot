@@ -43,12 +43,16 @@ class MediaEffects:
 
             else:
                 return None
-            file = await self.bot.get_file(media_file_id)
-            file_path = file.file_path
-            url = f"https://api.telegram.org/file/bot{self.bot.token}/{file_path}"
+            file_info = await self.bot.get_file(media_file_id)
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
+                url = f"https://api.telegram.org/bot{self.message.bot.token}/getFile?file_id={file_info.file_id}"
+                async with session.get(url) as resp:
+                    file_info = await resp.json()
+                    file_path = file_info['result']['file_path']
+
+                file_url = f"https://api.telegram.org/file/bot{self.message.bot.token}/{file_path}"
+                async with session.get(file_url) as response:
                     if response.status == 200:
                         async with aiofiles.open(media_input_path, "wb") as f:
                             await f.write(await response.read())

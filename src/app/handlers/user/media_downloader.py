@@ -64,7 +64,7 @@ async def take_media_effect(call: CallbackQuery, callback_data: MediaEffectsCD, 
                 await call.message.answer(_("Media type not found"))
                 return
 
-            print(f"{media_effect} 11111111111111111111111111")
+            print(f"{general_effect_type} 11111111111111111111111111")
             print(f"{meida_type} 11111111111111111111111111")
 
             out_put_media_path = await media_effect.media_effect(
