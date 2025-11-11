@@ -6,7 +6,7 @@ from src.app.services.media_downloaders.seekers.search import YouTubeSearcher
 from src.app.utils.enums.error import DownloadError
 
 
-class YouTubeDownloaders:
+class YouTubeDownloader:
     def __init__(self):
         self.searchs = YouTubeSearcher()
 
@@ -24,17 +24,15 @@ class YouTubeDownloaders:
                 "postprocessors": [{"key": "FFmpegMetadata"}],
             }
 
-            # yt_dlp ni async qilib ishga tushirish
             def download_video():
                 with YoutubeDL(ydl_opts) as ydl:
                     ydl.download([video_url])
 
             await asyncio.to_thread(download_video)
 
-            # media info olishni ham async qilish
-            video_data = await asyncio.to_thread(self.searchs.get_media_info, video_url)
+            video_data = await self.searchs.get_media_info(video_url)
 
-            video_filesize = video_data.get("filesize_mb") if video_data else None
+            video_filesize = video_data["filesize_mb"] if video_data else None
 
             if video_filesize and video_filesize > 2000:
                 errors.append(DownloadError.FILE_TOO_BIG)
@@ -45,5 +43,5 @@ class YouTubeDownloaders:
             return video_path, errors
 
         except Exception as e:
-            print("ERROR in youtube_video_and_shorts_downloader:", e)
+            print(f"ERROR: {e}")
             return None, [DownloadError.DOWNLOAD_ERROR]

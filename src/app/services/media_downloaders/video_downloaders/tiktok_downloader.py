@@ -1,7 +1,5 @@
 import asyncio
-from pprint import pprint
 
-import aiofiles
 import aiohttp
 from yt_dlp import YoutubeDL
 
@@ -9,7 +7,7 @@ from src.app.services.media_downloaders.utils.files import get_video_file_name
 from src.app.utils.enums.error import DownloadError
 
 
-class TikTokDownloaders:
+class TikTokDownloader:
     def __init__(self):
         self.aiohttp = aiohttp
 
@@ -40,6 +38,6 @@ class TikTokDownloaders:
             return video_output_path, errors
 
         except Exception as e:
-            print(f"⚠️ Xatolik: {e}")
+            print(f"ERROR: {e}")
             errors.append(str(e))
             return None, errors

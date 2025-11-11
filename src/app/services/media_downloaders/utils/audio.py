@@ -38,17 +38,15 @@ class AudioUtils:
         audio.export(wav_file, format="wav")
         return wav_file
 
-    async def speech_to_text(self, file_path: str, language: str = "uz") -> str:
+    def speech_to_text(self, file_path: str, language: str = "uz") -> str:
         file_waw = None
         try:
-            model = WhisperModel("tiny", device="cpu", compute_type="int8")
+            model = WhisperModel("small", device="cpu", compute_type="int8")
 
             if not file_path.endswith(".wav"):
-                file_waw = await asyncio.to_thread(self.convert_audio, file_path)
+                file_waw = self.convert_audio(file_path)
 
-            segments, info = await asyncio.to_thread(
-                model.transcribe, file_waw, language=language
-            )
+            segments, info = model.transcribe(file_waw, language=language)
             text = ""
             for segment in segments:
                 text += segment.text
@@ -61,8 +59,8 @@ class AudioUtils:
         except Exception as e:
             print("ERROR", e)
         finally:
-            if await asyncio.to_thread(os.path.exists, file_waw):
-                await asyncio.to_thread(os.remove, file_waw)
+            if os.path.exists(file_waw):
+                os.remove(file_waw)
 
 
 

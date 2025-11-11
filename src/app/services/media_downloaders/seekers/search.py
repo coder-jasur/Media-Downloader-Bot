@@ -49,7 +49,7 @@ class YouTubeSearcher:
         def extract_search():
             ydl_opts = {
                 "quiet": True,
-                "match_filter": lambda info: info.get('duration', 0) < 600,
+                "match_filter": lambda info: 90 > info.get('duration', 0) < 600,
                 "skip_download": True,
             }
 

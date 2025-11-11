@@ -1,7 +1,10 @@
 import asyncio
 import os
 from pathlib import Path
+from typing import List
 
+import aiofiles
+import aiohttp
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, FSInputFile, CallbackQuery, InputMediaPhoto, InputMediaVideo, InputMediaAudio
@@ -30,9 +33,7 @@ async def take_media_effect(call: CallbackQuery, callback_data: MediaEffectsCD, 
         await state.set_state(SendMediaSG.send_media)
         await call.message.edit_text(_("Send media"))
     else:
-        print(1111111111111111111111111111111)
         load_msg = await call.message.answer(_("Is being processed"))
-        print(1111111111111111111111111111111)
         media_effect = MediaEffects(message=call.message, bot=bot)
         out_put_media_path = None
 
@@ -64,15 +65,10 @@ async def take_media_effect(call: CallbackQuery, callback_data: MediaEffectsCD, 
                 await call.message.answer(_("Media type not found"))
                 return
 
-            print(f"{general_effect_type} 11111111111111111111111111")
-            print(f"{meida_type} 11111111111111111111111111")
-
             out_put_media_path = await media_effect.media_effect(
                 effect_type=general_effect_type,
                 media_type=meida_type,
             )
-            print(f"{out_put_media_path} 22222222222222222222222222222222222222")
-            print(f"{out_put_media_path} 2222222222222222222222222222222222")
 
             if not out_put_media_path or not await asyncio.to_thread(os.path.exists, out_put_media_path):
                 await call.message.answer(_("Error in processed media"))
@@ -199,17 +195,32 @@ async def take_media(message: Message, state: FSMContext, bot: Bot, lang: str):
 
 
 async def cleanup_files(*file_paths):
-
     for path in file_paths:
-        if path and await asyncio.to_thread(os.path.exists, path):
-            try:
-                await asyncio.to_thread(os.remove, path)
-            except Exception as e:
-                print(f"Cleanup error: {e}")
+        if path is None:
+            continue
+
+        if isinstance(path, (list, tuple)):
+            for item in path:
+                if item:
+                    try:
+                        item_str = str(item)
+                        exists = await asyncio.to_thread(os.path.exists, item_str)
+                        if exists:
+                            await asyncio.to_thread(os.remove, item_str)
+                    except Exception as e:
+                        print(f"ERROR: {e}")
+        else:
+            if path:
+                try:
+                    path_str = str(path)
+                    exists = await asyncio.to_thread(os.path.exists, path_str)
+                    if exists:
+                        await asyncio.to_thread(os.remove, path_str)
+                except Exception as e:
+                    print(f"ERROR: {e}")
 
 
 async def cleanup_post_paths(post_paths):
-
     if not post_paths:
         return
 
@@ -224,6 +235,29 @@ async def cleanup_post_paths(post_paths):
             await cleanup_files(*post)
 
 
+def create_media_group(media_list: List[str], caption: str = None) -> List:
+    """Media guruhini yaratish"""
+    media_group = []
+
+    for i, post in enumerate(media_list):
+        if not post:
+            continue
+        if not Path(post).exists():
+            continue
+
+        media_caption = caption if i == 0 else None
+        ext = os.path.splitext(post)[1].lower()
+
+        try:
+            if ext in [".jpg", ".jpeg", ".png", ".webp"]:
+                media_group.append(InputMediaPhoto(media=FSInputFile(post), caption=media_caption))
+            elif ext in [".mp4", ".mov", ".mkv"]:
+                media_group.append(InputMediaVideo(media=FSInputFile(post), caption=media_caption))
+        except Exception as e:
+            print(f"ERROR: {e}")
+
+    return media_group
+
 
 @media_downloader_router.message(F.text | F.video | F.video_note | F.voice | F.audio)
 async def all_downloader_(message: Message, lang: str):
@@ -235,115 +269,104 @@ async def all_downloader_(message: Message, lang: str):
             return
 
     video_path = None
-    post_paths = None
     photo_path = None
     thumbnail_path = None
     highlights_path = None
     load_msg = None
     downloader = AllDownloader(message=message, lang=lang)
 
-
     try:
         if message.text:
-
             if message.text.startswith("https://"):
-
                 validator = SocialMediaURLValidator()
                 info = await asyncio.to_thread(validator.validate, message.text)
 
                 if info.platform == "instagram":
-
                     if info.url_type == URLType.INSTAGRAM_HIGHLIGHT:
                         load_msg = await message.answer(_("Highlight is loading"))
-                        highlights_path = await downloader.instagram_downloaders(
+                        urls = await downloader.instagram_downloaders(
                             message.text, InstagramMediaType.HIGHLIGHT
                         )
 
-                        if highlights_path:
-                            for highlight_path in highlights_path:
-                                await message.reply_video(
-                                    FSInputFile(highlight_path),
-                                    reply_markup=video_keyboards(lang),
-                                    caption=_("Downloaded by")
-                                )
+                        if urls:
+                            if ".jpeg" in str(urls):
+                                for url in urls:
+                                    await message.reply_photo(
+                                        url,
+                                        caption=_("Downloaded by")
+                                    )
+
+                            elif ".mp4" in str(urls):
+                                for url in urls:
+                                    await message.reply_video(
+                                        url,
+                                        reply_markup=video_keyboards(lang),
+                                        caption=_("Downloaded by")
+                                    )
 
                     elif info.url_type == URLType.INSTAGRAM_STORIES:
                         load_msg = await message.answer(_("Stories is loading"))
-                        video_path = await downloader.instagram_downloaders(
+                        urls = await downloader.instagram_downloaders(
                             message.text, InstagramMediaType.STORIES
                         )
+                        if urls:
+                            if ".jpeg" in str(urls):
+                                for url in urls:
+                                    await message.reply_photo(
+                                        url,
+                                        caption=_("Downloaded by")
+                                    )
 
-                        if "photos" in str(video_path):
-                            await message.reply_photo(
-                                FSInputFile(video_path),
-                                caption=_("Downloaded by")
-                            )
 
-                        elif "videos" in str(video_path):
-                            await message.reply_video(
-                                FSInputFile(video_path),
-                                reply_markup=video_keyboards(lang),
-                                caption=_("Downloaded by")
-                            )
+                            elif ".mp4" in str(urls):
+                                for url in urls:
+                                    await message.reply_video(
+                                        url,
+                                        reply_markup=video_keyboards(lang),
+                                        caption=_("Downloaded by")
+                                    )
+
 
                     elif info.url_type == URLType.INSTAGRAM_POST:
                         load_msg = await message.answer(_("Post is loading"))
-                        post_paths = await downloader.instagram_downloaders(
+
+                        urls = await downloader.instagram_downloaders(
                             message.text, InstagramMediaType.POST
                         )
 
-                        if post_paths:
-                            for post in post_paths:
-                                if not post:
-                                    continue
+                        if not urls:
+                            return
 
-                                if isinstance(post, list):
-                                    media_group = []
-                                    for i, media in enumerate(post):
-                                        media_path = media.get("media_path")
-                                        media_type = media.get("type")
-                                        is_first = i == 0
-                                        caption = _("Downloaded by") if is_first else None
+                        skipped = []
 
-                                        if not media_path or not await asyncio.to_thread(os.path.exists, media_path):
-                                            continue
+                        for url in urls:
+                            if not url:
+                                continue
 
-                                        if media_type == "video":
-                                            media_group.append(
-                                                InputMediaVideo(
-                                                    media=FSInputFile(media_path),
-                                                    caption=caption
-                                                )
-                                            )
-                                        elif media_type == "photo":
-                                            media_group.append(
-                                                InputMediaPhoto(
-                                                    media=FSInputFile(media_path),
-                                                    caption=caption
-                                                )
-                                            )
+                            media_type = MediaType.VIDEO if "mp4" in url else MediaType.PHOTO
 
-                                    if media_group:
-                                        await message.reply_media_group(media=media_group)
+                            if media_type == MediaType.PHOTO:
+                                try:
+                                    caption = _("Downloaded by")
+                                    await message.reply_photo(
+                                        url,
+                                        caption=caption
+                                    )
 
-                                elif isinstance(post, dict):
-                                    media_path = post.get("media_path")
-                                    media_type = post.get("type")
+                                except Exception as e:
+                                    print(f"ERROR: {e}")
+                                    skipped.append(url)
 
-                                    if not media_path or not await asyncio.to_thread(os.path.exists, media_path):
-                                        continue
+                            elif media_type == MediaType.VIDEO:
+                                try:
+                                    await message.reply_video(
+                                        url,
+                                        reply_markup=video_keyboards(lang)
+                                    )
 
-                                    if media_type == "video":
-                                        await message.reply_video(
-                                            FSInputFile(media_path),
-                                            caption=_("Downloaded by"),
-                                            reply_markup=video_keyboards(lang)
-                                        )
-                                    elif media_type == "photo":
-                                        await message.reply_photo(
-                                            FSInputFile(media_path),
-                                            caption=_("Downloaded by")
-                                        )
+                                except Exception as e:
+                                    print(f"ERROR: {e}")
+                                    skipped.append(url)
 
                     elif info.url_type in [
                         URLType.INSTAGRAM_REEL,
@@ -355,9 +378,9 @@ async def all_downloader_(message: Message, lang: str):
                             message.text, InstagramMediaType.REELS
                         )
 
-                        if video_path and await asyncio.to_thread(os.path.exists, video_path):
+                        if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
                             await message.reply_video(
-                                FSInputFile(video_path),
+                                FSInputFile(str(video_path)),
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
@@ -366,23 +389,21 @@ async def all_downloader_(message: Message, lang: str):
                         URLType.INSTAGRAM_PROFILE_PHOTO,
                         URLType.INSTAGRAM_CDN_PHOTO
                     ]:
-                        load_msg = await message.answer(_("Profil photo is loading"))
+                        load_msg = await message.answer(_("Profile photo is loading"))
                         photo_path = await downloader.instagram_downloaders(
                             message.text, InstagramMediaType.PROFILE_PHOTO
                         )
 
-                        if photo_path and await asyncio.to_thread(os.path.exists, photo_path):
+                        if photo_path and await asyncio.to_thread(os.path.exists, str(photo_path)):
                             await message.reply_photo(
-                                FSInputFile(photo_path),
+                                FSInputFile(str(photo_path)),
                                 caption=_("Downloaded by")
                             )
 
                     else:
                         await message.answer(_("Wrong url"))
 
-
                 elif info.platform == "youtube":
-
                     if info.url_type in [
                         URLType.YOUTUBE_VIDEO,
                         URLType.YOUTUBE_SHORTS,
@@ -392,19 +413,18 @@ async def all_downloader_(message: Message, lang: str):
                         load_msg = await message.answer(_("Video is loading"))
                         url_to_download = info.clean_url or message.text
                         video_path = await downloader.youtube_downloaders(url_to_download)
+                        print(video_path)
 
-                        if video_path and await asyncio.to_thread(os.path.exists, video_path):
+                        if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
                             await message.reply_video(
-                                FSInputFile(video_path),
+                                FSInputFile(str(video_path)),
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
-
                     else:
                         await message.answer(_("Wrong url"))
 
                 elif info.platform == "tiktok":
-
                     if info.url_type in [
                         URLType.TIKTOK_VIDEO,
                         URLType.TIKTOK_PHOTO,
@@ -413,13 +433,12 @@ async def all_downloader_(message: Message, lang: str):
                         load_msg = await message.answer(_("Video is loading"))
                         video_path = await downloader.tiktok_downloaders(message.text)
 
-                        if video_path and await asyncio.to_thread(os.path.exists, video_path):
+                        if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
                             await message.reply_video(
-                                FSInputFile(video_path),
+                                FSInputFile(str(video_path)),
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
-
                     else:
                         await message.answer(_("Wrong url"))
 
@@ -459,7 +478,6 @@ async def all_downloader_(message: Message, lang: str):
             elif message.voice:
                 media_type = MediaType.VOICE
 
-
             if media_type:
                 music_list, music_title, thumbnail_path = await downloader.music_downloaders(
                     MusicAction.SEARCH_BY_MEDIA,
@@ -467,7 +485,7 @@ async def all_downloader_(message: Message, lang: str):
                 )
 
                 if music_list:
-                    if thumbnail_path and await asyncio.to_thread(Path(thumbnail_path).exists):
+                    if thumbnail_path and await asyncio.to_thread(os.path.exists, thumbnail_path):
                         await message.reply_photo(
                             photo=FSInputFile(thumbnail_path),
                             caption=music_title,
@@ -480,9 +498,7 @@ async def all_downloader_(message: Message, lang: str):
                         )
 
     except Exception as e:
-        print(f"ERROR in all_downloader_: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"ERROR: {e}")
         await message.answer(_("Error in loading"))
 
     finally:
@@ -490,13 +506,12 @@ async def all_downloader_(message: Message, lang: str):
             try:
                 await load_msg.delete()
             except Exception as e:
-                print("ERROR deleting load_msg:", e)
+                print(f"ERROR: {e}")
 
         await cleanup_files(video_path, photo_path, thumbnail_path)
-        await cleanup_post_paths(post_paths)
 
         if highlights_path:
-            await cleanup_files(*highlights_path)
+            await cleanup_files(highlights_path)
 
 
 @media_downloader_router.callback_query(SearchMusicInVideoCD.filter())
@@ -524,7 +539,7 @@ async def send_music_results_from_video(call: CallbackQuery, lang: str):
                     reply_markup=music_keyboards(musics_list)
                 )
         else:
-            await call.message.edit_text(_("Error in loading music"))
+            await call.message.answer(_("Error in loading music"))
     except Exception as e:
         print("ERROR in send_music_results_from_video:", e)
         await call.message.answer(_("Error in loading music"))
@@ -612,15 +627,26 @@ async def send_video_mp3_audio_version(call: CallbackQuery, lang: str, bot: Bot)
     _ = get_translator(lang).gettext
     load_msg = await call.message.answer(text=_("Audio is loading"))
     downloader_audio = AllDownloader()
+    video_path = f"./media/videos/{get_video_file_name()}"
     audio_path = None
-    video_path = None
 
     try:
-        file = await bot.get_file(call.message.audio.file_id)
-        file_path = file.file_path
-        video_path = f"./media/videos/{get_video_file_name()}"
 
-        await bot.download_file(file_path, video_path)
+        file = await bot.get_file(call.message.video.file_id)
+        file_info = await bot.get_file(file.file_id)
+
+        async with aiohttp.ClientSession() as session:
+            url = f"https://api.telegram.org/bot{call.message.bot.token}/getFile?file_id={file_info.file_id}"
+            async with session.get(url) as resp:
+                file_info = await resp.json()
+                file_path = file_info['result']['file_path']
+
+            file_url = f"https://api.telegram.org/file/bot{call.message.bot.token}/{file_path}"
+            async with session.get(file_url) as response:
+                if response.status == 200:
+                    async with aiofiles.open(video_path, "wb") as f:
+                        await f.write(await response.read())
+
         audio_path = await downloader_audio.extract_video_to_audio(video_path)
 
         if audio_path and await asyncio.to_thread(os.path.exists, audio_path):
@@ -642,7 +668,7 @@ async def send_video_mp3_audio_version(call: CallbackQuery, lang: str, bot: Bot)
                 print("ERROR deleting load_msg:", e)
 
         for file in [audio_path, video_path]:
-            if file and await asyncio.to_thread(os.path.exists, file):
+            if await asyncio.to_thread(os.path.exists, file):
                 await asyncio.to_thread(os.remove, file)
 
 

@@ -1,34 +1,68 @@
-version: '3.8'
+version: "3.9"
 
 services:
   postgres:
     container_name: toploaderdatabase
     image: postgres:14.5
     environment:
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
     restart: always
     ports:
-      - "5433:5432"
+      - "54340:5432"
     networks:
       - tg_bot
     volumes:
       - ./pgdata:/var/lib/postgresql/data
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     image: aiogram/telegram-bot-api:latest
+    container_name: telegram-bot-api
     restart: always
     environment:
-      TELEGRAM_API_ID: $TELEGRAM_API_ID
-      TELEGRAM_API_HASH: $TELEGRAM_API_HASH
-      TELEGRAM_LOCAL: $TELEGRAM_LOCAL
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_LOCAL: ${TELEGRAM_LOCAL}
     ports:
       - "8081:8081"
     volumes:
-      - /var/lib/telegram-bot-api:/var/lib/telegram-bot-api
+      - telegram-bot-api-data:/var/lib/telegram-bot-api
     networks:
       - tg_bot
+
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: selenium-chrome
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
+      - "7900:7900"  # VNC uchun - browserni ko'rish uchun
+    environment:
+      SE_NODE_MAX_SESSIONS: 5
+      SE_NODE_SESSION_TIMEOUT: 600
+      SE_VNC_NO_PASSWORD: 1
+      SE_SCREEN_WIDTH: 1920
+      SE_SCREEN_HEIGHT: 1080
+      SE_START_XVFB: true
+      # Real web saytlar uchun
+      SE_OPTS: "--log-level INFO"
+    restart: always
+    networks:
+      - tg_bot
+    volumes:
+      - /dev/shm:/dev/shm  # Crash oldini olish uchun
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   bot:
     image: "${BOT_IMAGE_NAME:-tg_bot-image}"
@@ -36,18 +70,37 @@ services:
     stop_signal: SIGINT
     build:
       context: .
+      dockerfile: Dockerfile
     working_dir: "/usr/src/app/${BOT_NAME:-tg_bot}"
     volumes:
-    - .:/usr/src/app/${BOT_NAME:-tg_bot}
+      - .:/usr/src/app/${BOT_NAME:-tg_bot}
+      - bot-logs:/app/logs
     restart: always
     depends_on:
-      - postgres
-      - api
+      postgres:
+        condition: service_healthy
+      selenium:
+        condition: service_healthy
+      api:
+        condition: service_started
     env_file:
       - ".env"
+    environment:
+      - SELENIUM_REMOTE_URL=http://selenium:4444
+      - PYTHONUNBUFFERED=1
     networks:
-    - tg_bot
+      - tg_bot
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
 
 networks:
   tg_bot:
     driver: bridge
+
+volumes:
+  telegram-bot-api-data:
+  bot-logs:
