@@ -329,22 +329,16 @@ async def all_downloader_(message: Message, lang: str):
 
                     elif info.url_type == URLType.INSTAGRAM_POST:
                         load_msg = await message.answer(_("Post is loading"))
-
                         urls = await downloader.instagram_downloaders(
                             message.text, InstagramMediaType.POST
                         )
-
                         if not urls:
                             return
-
                         skipped = []
-
                         for url in urls:
                             if not url:
                                 continue
-
                             media_type = MediaType.VIDEO if "mp4" in url else MediaType.PHOTO
-
                             if media_type == MediaType.PHOTO:
                                 try:
                                     caption = _("Downloaded by")
@@ -352,18 +346,15 @@ async def all_downloader_(message: Message, lang: str):
                                         url,
                                         caption=caption
                                     )
-
                                 except Exception as e:
                                     print(f"ERROR: {e}")
                                     skipped.append(url)
-
                             elif media_type == MediaType.VIDEO:
                                 try:
                                     await message.reply_video(
                                         url,
                                         reply_markup=video_keyboards(lang)
                                     )
-
                                 except Exception as e:
                                     print(f"ERROR: {e}")
                                     skipped.append(url)
@@ -412,8 +403,11 @@ async def all_downloader_(message: Message, lang: str):
                     ]:
                         load_msg = await message.answer(_("Video is loading"))
                         url_to_download = info.clean_url or message.text
+                        if "&list=" in url_to_download:
+                            url_to_download = url_to_download.split("&")[0]
+
                         video_path = await downloader.youtube_downloaders(url_to_download)
-                        print(video_path)
+
 
                         if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
                             await message.reply_video(
