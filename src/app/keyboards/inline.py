@@ -34,18 +34,16 @@ def video_keyboards(lang: str):
     return keyboard_builder.as_markup()
 
 
-def music_keyboards(music_list: list):
+def music_keyboards(music_list: list) -> InlineKeyboardMarkup:
     keyboard_builder = InlineKeyboardBuilder()
-    i = 1
 
-    for music in music_list:
+    for i, music in enumerate(music_list, start=1):
         keyboard_builder.add(
             InlineKeyboardButton(
                 text=str(i),
                 callback_data=MusicCD(video_id=music["id"]).pack()
             )
         )
-        i += 1
 
     keyboard_builder.adjust(5)
 

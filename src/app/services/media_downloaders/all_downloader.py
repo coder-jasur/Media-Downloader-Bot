@@ -101,33 +101,52 @@ class AllDownloader:
 
             if actions == MusicAction.SEARCH_BY_TEXT:
                 musics_data, entries, errors = await self.search.search_music(some_data, 10)
-                for entry in entries:
-                    thumbnail_path = await download_media_in_internet(
-                        entry.get("thumbnail", ""),
-                        get_photo_file_name(),
-                        MediaType.PHOTO
-                    )
-                    break
+
+                thumbnail_path = None
+                if entries:
+                    for entry in entries:
+                        thumbnail_path = await download_media_in_internet(
+                            entry.get("thumbnail", ""),
+                            get_photo_file_name(),
+                            MediaType.PHOTO
+                        )
+                        break
 
                 if DownloadError.MUSIC_NOT_FOUND in errors:
                     await self.message.answer(self._("Music not found"))
 
                 musics_list = []
                 music_title = ""
-                if musics_data:
-                    for i, music_data in enumerate(musics_data, start=1):
-                        if music_data.get("title"):
-                            file_size = music_data.get("filesize_mb")
-                            duration = str(music_data.get("duration"))
 
-                            if int(file_size) < 2000 and 10 > int(duration.split(":")[0]):
-                                musics_list.append(music_data)
-                                title = ""
-                                for text in str(music_data.get("title")).split(" "):
-                                    if not text.startswith("#") and not text.startswith("@") :
-                                        title += text + " "
-                                music_title += f"{i}. {title} - {duration}\n\n"
-                                i += 1
+                if musics_data:
+                    real_index = 1
+
+                    for music_data in musics_data:
+
+                        title = music_data.get("title")
+                        file_size = music_data.get("filesize_mb")
+                        duration = music_data.get("duration")
+
+                        if not file_size:
+                            continue
+
+                        try:
+                            minutes = int(str(duration).split(":")[0])
+                        except Exception as e:
+                            print(f"ERROR: {e}")
+                            continue
+
+                        # Filter
+                        if file_size < 2000 and minutes < 10:
+                            musics_list.append(music_data)
+
+                            clean_title = " ".join([
+                                w for w in title.split()
+                                if not w.startswith("#") and not w.startswith("@")
+                            ])
+
+                            music_title += f"{real_index}. {clean_title} - {duration}\n\n"
+                            real_index += 1
 
                 return musics_list, music_title, thumbnail_path
 

@@ -496,7 +496,6 @@ async def all_downloader_(message: Message, lang: str, settings: Settings):
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
-                            # Cache'ga saqlash
                             await cache_media(message.text, [{
                                 'type': 'video',
                                 'file_id': sent.video.file_id
@@ -519,7 +518,6 @@ async def all_downloader_(message: Message, lang: str, settings: Settings):
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
-                            # Cache'ga saqlash
                             await cache_media(message.text, [{
                                 'type': 'video',
                                 'file_id': sent.video.file_id
