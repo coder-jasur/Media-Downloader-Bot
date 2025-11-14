@@ -1,11 +1,10 @@
 import re
-from pprint import pprint
 from typing import Dict, Any, Callable, Awaitable
 
 import asyncpg
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramForbiddenError
-from aiogram.types import TelegramObject, Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery
 from aiogram_dialog import StartMode, ShowMode
 from aiogram_dialog.manager.bg_manager import BgManagerFactoryImpl
 
@@ -35,20 +34,16 @@ class LanguageMiddleware(BaseMiddleware):
             print(f"❌ Database error: {e}")
             return await handler(event, data)
 
-        # User mavjud
         if user_data:
             data["lang"] = user_data[3]
             return await handler(event, data)
 
-        # CallbackQuery - skip
         if isinstance(event, CallbackQuery):
             return await handler(event, data)
 
-        # Message emas - skip
         if not isinstance(event, Message):
             return await handler(event, data)
 
-        # Referral kodni ajratib olish
         referral_code = None
         if event.text:
             pattern = re.compile(r"^/start\s+([A-Za-z0-9]{10,20})$")
@@ -57,7 +52,6 @@ class LanguageMiddleware(BaseMiddleware):
                 referral_code = match.group(1)
                 print(f"🔗 Referral code detected: {referral_code}")
 
-        # Til tanlash dialogini ochish
         try:
             manager = manager_factory.bg(
                 data["bot"],

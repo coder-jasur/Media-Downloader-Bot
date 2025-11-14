@@ -147,20 +147,40 @@ class InstagramDownloader:
         try:
             driver.get("https://snapinsta.to/en2")
 
-            input_field = WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".form-control"))
+            # INPUT FIELD
+            fields = WebDriverWait(driver, 15).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".form-control"))
             )
-            input_field.clear()
-            input_field.send_keys(instagram_url)
+            input_field = next(f for f in fields if f.is_displayed())
+
+            # JS orqali qiymat berish
+            driver.execute_script("""
+                var el = document.querySelector('.form-control');
+                if (el) {
+                    el.value = arguments[0];
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            """, instagram_url)
+
+            time.sleep(0.5)
+
+            try:
+                input_field.clear()
+                input_field.send_keys(instagram_url)
+            except:
+                driver.execute_script(
+                    "arguments[0].value = arguments[1];", input_field, instagram_url
+                )
 
             download_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.btn-default"))
             )
-            download_button.click()
+            driver.execute_script("arguments[0].click();", download_button)
 
             time.sleep(3)
-            media_count = self.wait_for_download_links(driver)
 
+            media_count = self.wait_for_download_links(driver)
             if media_count == 0:
                 return []
 
@@ -171,23 +191,22 @@ class InstagramDownloader:
             for btn in download_buttons:
                 href = btn.get_attribute("href")
                 title = btn.get_attribute("title") or ""
+
                 if href:
-                    media_type = "photo" if "photo" in title.lower() else (
-                        "video" if "video" in title.lower() else "unknown"
+                    media_type = (
+                        "photo" if "photo" in title.lower() else
+                        "video" if "video" in title.lower() else
+                        "unknown"
                     )
                     results.append({"url": href, "type": media_type})
 
-            print(f"🎯 {len(results)} ta URL topildi.")
             return results
 
-        except TimeoutException:
-            return []
-        except NoSuchElementException as e:
-            return []
-        except Exception as e:
+        except Exception:
             import traceback
             traceback.print_exc()
             return []
+
         finally:
             driver.quit()
 
