@@ -1,15 +1,16 @@
 import asyncio
 import os
 from pathlib import Path
-from pprint import pprint
-from typing import List
+from typing import List, Dict
 
 import aiofiles
 import aiohttp
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, FSInputFile, CallbackQuery, InputMediaPhoto, InputMediaVideo, InputMediaAudio
+from aiogram.types import Message, FSInputFile, CallbackQuery, InputMediaAudio, InputMediaPhoto, InputMediaVideo
 
+from src.app.core.config import Settings
+from src.app.database.redis_utils import get_cached_media, cache_media, get_redis, get_cache_key
 from src.app.keyboards.callback_data import MusicCD, SearchMusicInVideoCD, AudioCD, MediaEffectsCD, TopPopularMusicCD
 from src.app.keyboards.inline import video_keyboards, music_keyboards, audio_keyboard, auido_effect_kbd
 from src.app.services.media_downloaders.all_downloader import AllDownloader
@@ -241,8 +242,44 @@ async def cleanup_post_paths(post_paths):
                     await cleanup_files(media_path)
 
 
+async def send_cached_media(message: Message, cached_media: List[Dict], lang: str, _, settings: Settings) -> bool:
+    try:
+        if len(cached_media) == 1:
+            media = cached_media[0]
+            if media['type'] == 'photo':
+                await message.reply_photo(
+                    photo=media['file_id'],
+                    caption=_("Downloaded by")
+                )
+            else:
+                await message.reply_video(
+                    video=media['file_id'],
+                    reply_markup=video_keyboards(lang),
+                    caption=_("Downloaded by")
+                )
+        else:
+            for media in cached_media:
+                if media['type'] == 'photo':
+                    await message.reply_photo(media['file_id'], caption=_("Downloaded by"))
+                else:
+                    await message.reply_video(
+                        media['file_id'],
+                        caption=_("Downloaded by"),
+                        reply_markup=video_keyboards(
+                            lang
+                        )
+                    )
+
+        return True
+    except Exception as e:
+        print(f"❌ Keshdan yuborishda xato: {e}")
+        redis_client = await get_redis(settings)
+        await redis_client.delete(get_cache_key(message.text))
+        return False
+
+
 @media_downloader_router.message(F.text | F.video | F.video_note | F.voice | F.audio)
-async def all_downloader_(message: Message, lang: str):
+async def all_downloader_(message: Message, lang: str, settings: Settings):
     _ = get_translator(lang).gettext
 
     for media in [message.audio, message.voice, message.video, message.video_note]:
@@ -261,6 +298,15 @@ async def all_downloader_(message: Message, lang: str):
     try:
         if message.text:
             if message.text.startswith("https://"):
+                cached_media = await get_cached_media(message.text, settings)
+                if cached_media:
+                    cache_msg = await message.answer(_("Video is loading"))
+                    success = await send_cached_media(message, cached_media, lang, _, settings)
+                    await cache_msg.delete()
+                    if success:
+                        return
+                # ================================================
+
                 validator = SocialMediaURLValidator()
                 info = await asyncio.to_thread(validator.validate, message.text)
 
@@ -323,6 +369,7 @@ async def all_downloader_(message: Message, lang: str):
                             await load_msg.edit_text(_("Failed to download post."))
                             return
 
+                        media_to_cache = []
                         for post in post_paths:
                             if not post:
                                 continue
@@ -335,17 +382,25 @@ async def all_downloader_(message: Message, lang: str):
                                         continue
 
                                     if media_type == "video":
-                                        await message.reply_video(
+                                        sent = await message.reply_video(
                                             video=FSInputFile(media_path),
                                             caption=_("Downloaded by"),
                                             reply_markup=video_keyboards(lang)
                                         )
+                                        media_to_cache.append({
+                                            'type': 'video',
+                                            'file_id': sent.video.file_id
+                                        })
 
                                     elif media_type == "photo":
-                                        await message.reply_photo(
+                                        sent = await message.reply_photo(
                                             photo=FSInputFile(media_path),
                                             caption=_("Downloaded by")
                                         )
+                                        media_to_cache.append({
+                                            'type': 'photo',
+                                            'file_id': sent.photo[-1].file_id
+                                        })
 
                             elif isinstance(post, dict):
                                 media_path = post.get("media_path")
@@ -355,17 +410,28 @@ async def all_downloader_(message: Message, lang: str):
                                     continue
 
                                 if media_type == "video":
-                                    await message.reply_video(
+                                    sent = await message.reply_video(
                                         video=FSInputFile(media_path),
                                         caption=_("Downloaded by"),
                                         reply_markup=video_keyboards(lang)
                                     )
+                                    media_to_cache.append({
+                                        'type': 'video',
+                                        'file_id': sent.video.file_id
+                                    })
 
                                 elif media_type == "photo":
-                                    await message.reply_photo(
+                                    sent = await message.reply_photo(
                                         photo=FSInputFile(media_path),
                                         caption=_("Downloaded by")
                                     )
+                                    media_to_cache.append({
+                                        'type': 'photo',
+                                        'file_id': sent.photo[-1].file_id
+                                    })
+
+                        if media_to_cache:
+                            await cache_media(message.text, media_to_cache, settings)
 
                     elif info.url_type in [
                         URLType.INSTAGRAM_REEL,
@@ -378,11 +444,15 @@ async def all_downloader_(message: Message, lang: str):
                         )
 
                         if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
-                            await message.reply_video(
+                            sent = await message.reply_video(
                                 FSInputFile(str(video_path)),
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
+                            await cache_media(message.text, [{
+                                'type': 'video',
+                                'file_id': sent.video.file_id
+                            }], settings)
 
                     elif info.url_type in [
                         URLType.INSTAGRAM_PROFILE_PHOTO,
@@ -394,10 +464,14 @@ async def all_downloader_(message: Message, lang: str):
                         )
 
                         if photo_path and await asyncio.to_thread(os.path.exists, str(photo_path)):
-                            await message.reply_photo(
+                            sent = await message.reply_photo(
                                 FSInputFile(str(photo_path)),
                                 caption=_("Downloaded by")
                             )
+                            await cache_media(message.text, [{
+                                'type': 'photo',
+                                'file_id': sent.photo[-1].file_id
+                            }], settings)
 
                     else:
                         await message.answer(_("Wrong url"))
@@ -416,13 +490,17 @@ async def all_downloader_(message: Message, lang: str):
 
                         video_path = await downloader.youtube_downloaders(url_to_download)
 
-
                         if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
-                            await message.reply_video(
+                            sent = await message.reply_video(
                                 FSInputFile(str(video_path)),
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
+                            # Cache'ga saqlash
+                            await cache_media(message.text, [{
+                                'type': 'video',
+                                'file_id': sent.video.file_id
+                            }], settings)
                     else:
                         await message.answer(_("Wrong url"))
 
@@ -436,11 +514,16 @@ async def all_downloader_(message: Message, lang: str):
                         video_path = await downloader.tiktok_downloaders(message.text)
 
                         if video_path and await asyncio.to_thread(os.path.exists, str(video_path)):
-                            await message.reply_video(
+                            sent = await message.reply_video(
                                 FSInputFile(str(video_path)),
                                 reply_markup=video_keyboards(lang),
                                 caption=_("Downloaded by")
                             )
+                            # Cache'ga saqlash
+                            await cache_media(message.text, [{
+                                'type': 'video',
+                                'file_id': sent.video.file_id
+                            }], settings)
                     else:
                         await message.answer(_("Wrong url"))
 

@@ -7,6 +7,9 @@ from aiogram import Dispatcher, Bot, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.telegram import TelegramAPIServer
+from aiogram.fsm.storage.base import DefaultKeyBuilder
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_dialog import setup_dialogs
 
 from logs.loggger_conf import setup_logging
@@ -34,7 +37,17 @@ async def main():
     async with pool.acquire() as conn:
         await create_database_tables(conn)
 
-    dp = Dispatcher()
+    if settings.bot_user_redis:
+        key_builder = DefaultKeyBuilder(with_destiny=True)
+
+        storage = RedisStorage.from_url(
+            f'redis://{settings.redis_host}:6379/{settings.redis_db_name}',
+            key_builder=key_builder
+        )
+    else:
+        storage = MemoryStorage()
+
+    dp = Dispatcher(storage=storage)
 
     dialogs_router = Router()
     other_router = Router()
@@ -75,3 +88,5 @@ if __name__ == "__main__":
 
     except Exception as e:
         logger.exception(e)
+
+

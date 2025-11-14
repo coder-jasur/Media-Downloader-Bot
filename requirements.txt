@@ -1,6 +1,7 @@
 aiogram
 aiogram-dialog
 asyncpg
+redis
 environs
 colorlog
 pyyaml

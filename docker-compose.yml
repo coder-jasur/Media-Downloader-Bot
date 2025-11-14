@@ -36,13 +36,29 @@ services:
     networks:
       - tg_bot
 
+  redis:
+    image: redis:6.2.5-alpine
+    container_name: redis-server
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - tg_bot
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   selenium:
     image: selenium/standalone-chrome:latest
     container_name: selenium-chrome
     shm_size: 2gb
     ports:
       - "4444:4444"
-      - "7900:7900"  # VNC uchun - browserni ko'rish uchun
+      - "7900:7900"  # VNC uchun
     environment:
       SE_NODE_MAX_SESSIONS: 5
       SE_NODE_SESSION_TIMEOUT: 600
@@ -50,13 +66,12 @@ services:
       SE_SCREEN_WIDTH: 1920
       SE_SCREEN_HEIGHT: 1080
       SE_START_XVFB: true
-      # Real web saytlar uchun
       SE_OPTS: "--log-level INFO"
     restart: always
     networks:
       - tg_bot
     volumes:
-      - /dev/shm:/dev/shm  # Crash oldini olish uchun
+      - /dev/shm:/dev/shm
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
       interval: 15s
@@ -83,11 +98,14 @@ services:
         condition: service_healthy
       api:
         condition: service_started
+      redis:
+        condition: service_healthy
     env_file:
       - ".env"
     environment:
       - SELENIUM_REMOTE_URL=http://selenium:4444
       - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
     networks:
       - tg_bot
     deploy:
@@ -104,3 +122,4 @@ networks:
 volumes:
   telegram-bot-api-data:
   bot-logs:
+  redis-data:
