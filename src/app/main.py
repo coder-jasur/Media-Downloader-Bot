@@ -66,6 +66,7 @@ async def main():
 
     register_all_dialogs(dialogs_router)
 
+    register_middleware(dp, settings, pool)
     register_all_router(dp, settings)
 
     dp.include_router(dialogs_router)
@@ -73,7 +74,7 @@ async def main():
 
     setup_dialogs(dp)
 
-    register_middleware(dp, settings, pool)
+
 
     session = AiohttpSession(api=TelegramAPIServer.from_base(settings.tg_api_server_url))
 

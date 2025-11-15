@@ -18,7 +18,7 @@ msgstr ""
 #: src/app/handlers/start.py:32 src/app/handlers/start.py:38
 msgid "Start text"
 msgstr ""
-"🔥 Assalomu alaykum! @youturobot ga xush kelibsiz.\n\n"
+"🔥 Assalomu alaykum! @ttnowatermark_bot ga xush kelibsiz.\n\n"
 "bot orqali quyidagilarni yuklab olishingiz mumkin:\n\n"
 "📥 Video yuklab olish funksiyasi:\n"
 "• <b>Instagram</b> — post va IGTV + musiqa, audio\n"
@@ -241,7 +241,7 @@ msgstr "📬 Referalga nom bering"
 
 #: src/app/handlers/admin/menu/referal.py:74
 msgid "Referal formant info"
-msgstr "Referal haqida malumot\n\nNomi: {}\nChaqiragn foydalanuvchilari: {}referal urli: https://t.me/youturobot?start={}"
+msgstr "Referal haqida malumot\n\nNomi: {}\nChaqiragn foydalanuvchilari: {}referal urli: https://t.me/ttnowatermark_bot?start={}"
 
 #: src/app/handlers/admin/menu/referal.py:85
 msgid "Send only text"
@@ -311,7 +311,7 @@ msgstr ""
 #: src/app/handlers/user/media_downloader.py:558
 #: src/app/handlers/user/media_downloader.py:630
 msgid "Downloaded by"
-msgstr "📥 @youturobot orqali yuklab olindi"
+msgstr "📥 @ttnowatermark_bot orqali yuklab olindi"
 
 #: src/app/handlers/user/media_downloader.py:123
 msgid "Effect type not found"

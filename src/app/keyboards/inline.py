@@ -509,7 +509,7 @@ def not_channels_button(channel_data):
     for channel in channel_data:
 
         builder_button.row(
-            InlineKeyboardButton(text=channel[1], url=channel[5])
+            InlineKeyboardButton(text=channel[1], url=channel[4])
         )
 
     builder_button.row(InlineKeyboardButton(text="✅", callback_data="check_sub"))

@@ -10,7 +10,7 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
     TelegramAPIError
 )
-from aiogram.types import Message, InputMedia
+from aiogram.types import Message, InputMedia, MessageEntity
 from asyncpg import Pool
 
 from src.app.database.queries.users import UserDataBaseActions
@@ -45,8 +45,8 @@ class Broadcaster:
             pool: Pool,
             bot: Bot,
             admin_id: int,
-            broadcasting_message: Message = None,
-            album: list[Message] = None,
+            broadcasting_message: dict = None,
+            album: list[dict] = None,
             batch_size: int = 5000,
             sleep_seconds: float = 0.04,
             lang: str = "uz"
@@ -58,8 +58,8 @@ class Broadcaster:
             pool: Database connection pool
             bot: Telegram Bot
             admin_id: Admin ID
-            broadcasting_message: Yagona xabar
-            album: Album xabarlari
+            broadcasting_message: Serialized message dict
+            album: List of serialized message dicts
             batch_size: Batch hajmi
             sleep_seconds: Xabarlar orasidagi kutish vaqti
             lang: Til kodi
@@ -108,24 +108,21 @@ class Broadcaster:
                 # Database update
                 await self._update_user_statuses()
 
+            # Use f-string instead of .format() to avoid i18n issues
             logger.info(
-                self._("Broadcasting completed: {sent} sent, {failed} failed, {batches} batches").format(
-                    sent=self.stats.sent,
-                    failed=self.stats.failed,
-                    batches=self.stats.batches
-                )
+                f"{self._('Broadcasting completed')}: "
+                f"{self.stats.sent} sent, {self.stats.failed} failed, {self.stats.batches} batches"
             )
 
         except Exception as e:
             logger.error(f"{self._('Broadcasting error')}: {e}")
             await self.bot.send_message(
                 self.admin_id,
-                self._("Broadcasting error: {error}").format(error=str(e))
+                f"{self._('Broadcasting error')}: {str(e)}"
             )
 
         finally:
             await self._update_status_message(info_message, final=True)
-            await self._delete_preview()
             await self._update_user_statuses()
 
         return (
@@ -148,6 +145,24 @@ class Broadcaster:
 
             await asyncio.sleep(self.sleep_seconds)
 
+    def _reconstruct_entities(self, entities_data: list[dict]) -> list[MessageEntity]:
+        """Reconstruct MessageEntity objects from serialized data"""
+        if not entities_data:
+            return None
+
+        entities = []
+        for entity_data in entities_data:
+            entity = MessageEntity(
+                type=entity_data["type"],
+                offset=entity_data["offset"],
+                length=entity_data["length"],
+                url=entity_data.get("url"),
+                user=entity_data.get("user"),
+                language=entity_data.get("language")
+            )
+            entities.append(entity)
+        return entities
+
     async def _send_to_user(self, user_id: int) -> Union[bool, str]:
         """
         Foydalanuvchiga xabar yuborish
@@ -162,17 +177,9 @@ class Broadcaster:
         """
         try:
             if self.broadcasting_message:
-                await self.bot.copy_message(
-                    chat_id=user_id,
-                    from_chat_id=self.broadcasting_message.from_user.id,
-                    message_id=self.broadcasting_message.message_id,
-                    reply_markup=self.broadcasting_message.reply_markup
-                )
+                await self._send_single_message(user_id, self.broadcasting_message)
             else:
-                await self.bot.send_media_group(
-                    chat_id=user_id,
-                    media=self._prepare_album(self.album)
-                )
+                await self._send_album(user_id, self.album)
 
             logger.debug(f"[ID:{user_id}] {self._('message sent')}")
             return True
@@ -194,12 +201,7 @@ class Broadcaster:
                 return "blocked"
 
         except TelegramRetryAfter as e:
-            logger.warning(
-                self._("[ID:{user_id}] Flood limit. Sleeping {seconds}s").format(
-                    user_id=user_id,
-                    seconds=e.retry_after
-                )
-            )
+            logger.warning(f"[ID:{user_id}] Flood limit. Sleeping {e.retry_after}s")
             await asyncio.sleep(e.retry_after)
             return await self._send_to_user(user_id)
 
@@ -210,6 +212,80 @@ class Broadcaster:
         except Exception as e:
             logger.error(f"[ID:{user_id}] {self._('Unexpected error')}: {e}")
             return False
+
+    async def _send_single_message(self, user_id: int, message_data: dict) -> None:
+        """Send a single message based on serialized data"""
+        # Reconstruct entities
+        entities = self._reconstruct_entities(message_data.get("entities"))
+        caption_entities = self._reconstruct_entities(message_data.get("caption_entities"))
+
+        # Send based on content type
+        if message_data.get("photo"):
+            await self.bot.send_photo(
+                chat_id=user_id,
+                photo=message_data["photo"],
+                caption=message_data.get("caption"),
+                caption_entities=caption_entities
+            )
+        elif message_data.get("video"):
+            await self.bot.send_video(
+                chat_id=user_id,
+                video=message_data["video"],
+                caption=message_data.get("caption"),
+                caption_entities=caption_entities
+            )
+        elif message_data.get("animation"):
+            await self.bot.send_animation(
+                chat_id=user_id,
+                animation=message_data["animation"],
+                caption=message_data.get("caption"),
+                caption_entities=caption_entities
+            )
+        elif message_data.get("document"):
+            await self.bot.send_document(
+                chat_id=user_id,
+                document=message_data["document"],
+                caption=message_data.get("caption"),
+                caption_entities=caption_entities
+            )
+        elif message_data.get("audio"):
+            await self.bot.send_audio(
+                chat_id=user_id,
+                audio=message_data["audio"],
+                caption=message_data.get("caption"),
+                caption_entities=caption_entities
+            )
+        elif message_data.get("voice"):
+            await self.bot.send_voice(
+                chat_id=user_id,
+                voice=message_data["voice"],
+                caption=message_data.get("caption"),
+                caption_entities=caption_entities
+            )
+        elif message_data.get("video_note"):
+            await self.bot.send_video_note(
+                chat_id=user_id,
+                video_note=message_data["video_note"]
+            )
+        elif message_data.get("sticker"):
+            await self.bot.send_sticker(
+                chat_id=user_id,
+                sticker=message_data["sticker"]
+            )
+        elif message_data.get("text"):
+            await self.bot.send_message(
+                chat_id=user_id,
+                text=message_data["text"],
+                entities=entities
+            )
+
+    async def _send_album(self, user_id: int, album_data: list[dict]) -> None:
+        """Send album based on serialized data"""
+        media_group = self._prepare_album(album_data)
+        await self.bot.send_media_group(
+            chat_id=user_id,
+            media=media_group
+        )
 
     def _categorize_failure(self, user_id: int, result: str) -> None:
         """Xatolikni kategoriyalash"""
@@ -239,12 +315,7 @@ class Broadcaster:
             for user_ids, status in status_mapping:
                 if user_ids:
                     await self._batch_update_status(user_ids, status)
-                    logger.info(
-                        self._("{count} users marked as {status}").format(
-                            count=len(user_ids),
-                            status=status
-                        )
-                    )
+                    logger.info(f"{len(user_ids)} users marked as {status}")
 
             # Listlarni tozalash
             self.stats.blocked_users.clear()
@@ -278,9 +349,7 @@ class Broadcaster:
         try:
             text = self._format_status_text()
             if final:
-                text += "\n\n" + self._("Total processed: {count} users").format(
-                    count=self.stats.total_processed
-                )
+                text += f"\n\n{self._('Total processed')}: {self.stats.total_processed} users"
 
             await message.edit_text(text, parse_mode="HTML")
         except Exception as e:
@@ -288,43 +357,20 @@ class Broadcaster:
 
     def _format_status_text(self) -> str:
         """Status text formatlash"""
-        return self._(
-            "📤 <b>Broadcasting</b>\n\n"
-            "✅ Sent: {sent}\n"
-            "❌ Failed: {failed}\n"
-            "🚫 Blocked: {blocked}\n"
-            "🗑 Deleted: {deleted}\n"
-            "⚠️ Limited: {limited}\n"
-            "💤 Deactivated: {deactivated}\n"
-            "📦 Batches: {batches}"
-        ).format(
-            sent=self.stats.sent,
-            failed=self.stats.failed,
-            blocked=self.stats.blocked,
-            deleted=self.stats.deleted,
-            limited=self.stats.limited,
-            deactivated=self.stats.deactivated,
-            batches=self.stats.batches
+        # Use f-string to avoid .format() issues with translations
+        return (
+            f"📤 <b>{self._('Broadcasting')}</b>\n\n"
+            f"✅ {self._('Sent')}: {self.stats.sent}\n"
+            f"❌ {self._('Failed')}: {self.stats.failed}\n"
+            f"🚫 {self._('Blocked')}: {self.stats.blocked}\n"
+            f"🗑 {self._('Deleted')}: {self.stats.deleted}\n"
+            f"⚠️ {self._('Limited')}: {self.stats.limited}\n"
+            f"💤 {self._('Deactivated')}: {self.stats.deactivated}\n"
+            f"📦 {self._('Batches')}: {self.stats.batches}"
         )
 
-    async def _delete_preview(self) -> None:
-        """Preview xabarlarni o'chirish"""
-        try:
-            if self.broadcasting_message:
-                await self.bot.delete_message(
-                    self.admin_id,
-                    self.broadcasting_message.message_id
-                )
-            elif self.album:
-                await self.bot.delete_messages(
-                    self.admin_id,
-                    [msg.message_id for msg in self.album]
-                )
-        except Exception as e:
-            logger.error(f"{self._('Preview delete error')}: {e}")
-
-    def _prepare_album(self, album: list[Message]) -> list[InputMedia]:
-        """Album tayyorlash"""
+    def _prepare_album(self, album_data: list[dict]) -> list[InputMedia]:
+        """Album tayyorlash from serialized data"""
         from aiogram.types import (
             InputMediaPhoto,
             InputMediaVideo,
@@ -335,38 +381,40 @@ class Broadcaster:
 
         media_list = []
 
-        for message in album:
+        for message_data in album_data:
             media = None
-            caption = getattr(message, 'html_text', None)
-            has_spoiler = getattr(message, 'has_media_spoiler', None)
+            caption = message_data.get("caption")
+            caption_entities = self._reconstruct_entities(message_data.get("caption_entities"))
 
-            if message.photo:
+            if message_data.get("photo"):
                 media = InputMediaPhoto(
-                    media=message.photo[-1].file_id,
+                    media=message_data["photo"],
                     caption=caption,
-                    has_spoiler=has_spoiler
+                    caption_entities=caption_entities
                 )
-            elif message.video:
+            elif message_data.get("video"):
                 media = InputMediaVideo(
-                    media=message.video.file_id,
+                    media=message_data["video"],
                     caption=caption,
-                    has_spoiler=has_spoiler
+                    caption_entities=caption_entities
                 )
-            elif message.animation:
+            elif message_data.get("animation"):
                 media = InputMediaAnimation(
-                    media=message.animation.file_id,
+                    media=message_data["animation"],
                     caption=caption,
-                    has_spoiler=has_spoiler
+                    caption_entities=caption_entities
                 )
-            elif message.document:
+            elif message_data.get("document"):
                 media = InputMediaDocument(
-                    media=message.document.file_id,
-                    caption=caption
+                    media=message_data["document"],
+                    caption=caption,
+                    caption_entities=caption_entities
                 )
-            elif message.audio:
+            elif message_data.get("audio"):
                 media = InputMediaAudio(
-                    media=message.audio.file_id,
-                    caption=caption
+                    media=message_data["audio"],
+                    caption=caption,
+                    caption_entities=caption_entities
                 )
 
             if media:

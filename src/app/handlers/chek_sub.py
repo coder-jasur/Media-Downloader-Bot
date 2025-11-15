@@ -11,58 +11,79 @@ from src.app.utils.i18n import get_translator
 
 check_sub_router = Router()
 
+
 @check_sub_router.callback_query(F.data == "check_sub")
 async def check_channel_sub(
-    call: CallbackQuery,
-    dialog_manager: DialogManager,
-    pool: asyncpg.Pool,
-    bot: Bot,
-    lang: str,
+        call: CallbackQuery,
+        dialog_manager: DialogManager,
+        pool: asyncpg.Pool,
+        bot: Bot,
+        lang: str,
 ):
     _ = get_translator(lang).gettext
     channel_actions = ChannelDataBaseActions(pool)
     user_actions = UserDataBaseActions(pool)
-    user_data = await user_actions.get_user(dialog_manager.event.from_user.id)
+
+    # call.from_user.id dan foydalanish (dialog_manager.event emas)
+    user_data = await user_actions.get_user(call.from_user.id)
     channel_data = await channel_actions.get_all_channels()
     not_sub_channels = []
 
+    # Majburiy kanallarga obuna tekshirish
     for channel in channel_data:
-        if channel[3] == "True":
-            user_status = await bot.get_chat_member(channel[0], dialog_manager.event.from_user.id)
-            if user_status.status not in ["member", "administrator", "creator"]:
-                not_sub_channels.append(channel)
+        # channel[3] tekshirish - string yoki boolean
+        if channel[3] is True or channel[3] == "True" or channel[3] == True:
+            try:
+                user_status = await bot.get_chat_member(channel[0], call.from_user.id)
+                if user_status.status not in ["member", "administrator", "creator"]:
+                    not_sub_channels.append(channel)
+            except Exception as e:
+                # Kanal topilmasa yoki boshqa xato
+                print(f"Error checking channel {channel[0]}: {e}")
+                continue
 
-    text = ""
-
+    # Translation matnlari (yoki translation fayllaridan olish mumkin)
     if lang == "uz":
-        text += "Botdan foydalanish uchun shu kanallarga obuna bo'lib qo'ying"
-
+        subscription_text = "Botdan foydalanish uchun quyidagi kanallarga obuna bo'ling 👇"
     elif lang == "ru":
-        text += "Чтобы пользоваться ботом, подпишитесь на эти каналы"
-
+        subscription_text = "Чтобы пользоваться ботом, подпишитесь на эти каналы 👇"
     elif lang == "en":
-        text += "To use the bot, please subscribe to these channels"
+        subscription_text = "To use the bot, please subscribe to these channels 👇"
+    else:
+        subscription_text = "Botdan foydalanish uchun quyidagi kanallarga obuna bo'ling 👇"
 
     if not not_sub_channels:
-        if not user_data[3]:
+
+        if not user_data or not user_data[3]:
             await dialog_manager.start(ChooseLanguageSG.choose_language)
         else:
             await call.message.answer(_("Start text"))
-    elif not_sub_channels:
-        await dialog_manager.event.message.answer(
-            text + ".",
-            reply_markup=not_channels_button(not_sub_channels)
-        )
+            try:
+                await call.message.delete()
+            except:
+                pass
+
     else:
         try:
-            await dialog_manager.event.message.edit_text(
-                text,
-                reply_markup=not_channels_button(channel_data),
+            await call.message.edit_text(
+                subscription_text,
+                reply_markup=not_channels_button(not_sub_channels),
             )
-
         except Exception as e:
-            print(e)
-            await dialog_manager.event.message.edit_text(
-                text + ".",
-                reply_markup=not_channels_button(channel_data),
-            )
+            print(f"Could not edit message: {e}")
+            try:
+                await call.message.answer(
+                    subscription_text,
+                    reply_markup=not_channels_button(not_sub_channels),
+                )
+                try:
+                    await call.message.delete()
+                except:
+                    pass
+            except Exception as e:
+                print(f"Error sending subscription message: {e}")
+
+    try:
+        await call.answer()
+    except:
+        pass

@@ -198,7 +198,7 @@ async def add_channel_with_default_url(
         channel_info.id,
         channel_info.full_name,
         channel_info.username or None,
-        f"https://t.me/{channel_info.username[1:]}"
+        f"https://t.me/{channel_info.username[0:]}"
     )
 
     await state.clear()

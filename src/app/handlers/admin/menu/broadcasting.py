@@ -14,6 +14,63 @@ logger = logging.getLogger(__name__)
 broadcaster_router = Router()
 
 
+def serialize_message(message: Message) -> dict:
+    """Convert Message object to JSON-serializable dict"""
+    data = {
+        "message_id": message.message_id,
+        "chat_id": message.chat.id,
+        "text": message.text,
+        "caption": message.caption,
+    }
+
+    # Add media information if present
+    if message.photo:
+        data["photo"] = message.photo[-1].file_id  # Highest resolution
+    if message.video:
+        data["video"] = message.video.file_id
+    if message.document:
+        data["document"] = message.document.file_id
+    if message.audio:
+        data["audio"] = message.audio.file_id
+    if message.voice:
+        data["voice"] = message.voice.file_id
+    if message.animation:
+        data["animation"] = message.animation.file_id
+    if message.sticker:
+        data["sticker"] = message.sticker.file_id
+    if message.video_note:
+        data["video_note"] = message.video_note.file_id
+
+    # Add entities if present (for formatting)
+    if message.entities:
+        data["entities"] = [
+            {
+                "type": entity.type,
+                "offset": entity.offset,
+                "length": entity.length,
+                "url": entity.url,
+                "user": entity.user.id if entity.user else None,
+                "language": entity.language,
+            }
+            for entity in message.entities
+        ]
+
+    if message.caption_entities:
+        data["caption_entities"] = [
+            {
+                "type": entity.type,
+                "offset": entity.offset,
+                "length": entity.length,
+                "url": entity.url,
+                "user": entity.user.id if entity.user else None,
+                "language": entity.language,
+            }
+            for entity in message.caption_entities
+        ]
+
+    return data
+
+
 @broadcaster_router.callback_query(F.data == "boroadcasting")
 async def start_broadcasting(call: CallbackQuery, state: FSMContext, lang: str):
     """Broadcasting boshlash"""
@@ -40,9 +97,13 @@ async def receive_broadcast_message(message: Message, state: FSMContext, lang: s
     # Album yoki yagona xabar
     album = kwargs.get("album")
     if album:
-        await state.update_data(album=album)
+        # Serialize each message in album
+        serialized_album = [serialize_message(msg) for msg in album]
+        await state.update_data(album=serialized_album)
     else:
-        await state.update_data(message=message)
+        # Serialize single message
+        serialized_message = serialize_message(message)
+        await state.update_data(message=serialized_message)
 
     await state.set_state(BroadcastingManagerSG.confirm_broadcasting)
     await message.answer(
@@ -102,8 +163,8 @@ async def confirm_broadcast(call: CallbackQuery, state: FSMContext, bot: Bot, po
             pool=pool,
             bot=bot,
             admin_id=call.from_user.id,
-            broadcasting_message=message,
-            album=album,
+            broadcasting_message=message,  # Now a dict
+            album=album,  # Now a list of dicts
             batch_size=5000,
             lang=lang
         )
@@ -111,17 +172,25 @@ async def confirm_broadcast(call: CallbackQuery, state: FSMContext, bot: Bot, po
         # Broadcasting
         blocked, deleted, limited, deactivated = await broadcaster.broadcast()
 
-        # Natija
+        # Natija - using string concatenation instead of .format()
         result_parts = [_("Broadcasting completed")]
 
         if blocked:
-            result_parts.append(_("Blocked users count").format(count=len(blocked)))
+            # Use string formatting that matches your translation method
+            blocked_msg = _("Blocked users count")
+            result_parts.append(f"{blocked_msg}: {len(blocked)}")
+
         if deleted:
-            result_parts.append(_("Deleted users count").format(count=len(deleted)))
+            deleted_msg = _("Deleted users count")
+            result_parts.append(f"{deleted_msg}: {len(deleted)}")
+
         if limited:
-            result_parts.append(_("Limited users count").format(count=len(limited)))
+            limited_msg = _("Limited users count")
+            result_parts.append(f"{limited_msg}: {len(limited)}")
+
         if deactivated:
-            result_parts.append(_("Deactivated users count").format(count=len(deactivated)))
+            deactivated_msg = _("Deactivated users count")
+            result_parts.append(f"{deactivated_msg}: {len(deactivated)}")
 
         if not any([blocked, deleted, limited, deactivated]):
             result_parts.append(_("All messages delivered successfully"))
@@ -132,10 +201,14 @@ async def confirm_broadcast(call: CallbackQuery, state: FSMContext, bot: Bot, po
         await state.clear()
 
     except ValueError as e:
-        await call.message.edit_text(_("Error: {error}").format(error=str(e)))
+        # Use f-string instead of .format()
+        error_msg = _("Error")
+        await call.message.edit_text(f"{error_msg}: {str(e)}")
         await state.clear()
 
     except Exception as e:
-        logger.error(f"{_('Broadcasting error')}: {e}")
-        await call.message.edit_text(_("Unexpected error: {error}").format(error=str(e)))
+        logger.error(f"Broadcasting error: {e}")
+        # Use f-string instead of .format()
+        error_msg = _("Unexpected error")
+        await call.message.edit_text(f"{error_msg}: {str(e)}")
         await state.clear()
