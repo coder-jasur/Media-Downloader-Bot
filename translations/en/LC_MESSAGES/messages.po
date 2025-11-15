@@ -18,7 +18,7 @@ msgstr ""
 #: src/app/handlers/start.py:32 src/app/handlers/start.py:38
 msgid "Start text"
 msgstr ""
-"🔥 Hello! Welcome to @TopLoaderBot.\n"
+"🔥 Hello! Welcome to @youturobot.\n"
 "\n"
 "With the bot you can download:\n"
 "\n"
@@ -254,7 +254,7 @@ msgstr ""
 "\n"
 "Name: {}\n"
 "Invited users: {}\n"
-"Referral URL: https://t.me/Toploaderbot?start={}"
+"Referral URL: https://t.me/youturobot?start={}"
 
 #: src/app/handlers/admin/menu/referal.py:85
 msgid "Send only text"
@@ -324,7 +324,7 @@ msgstr ""
 #: src/app/handlers/user/media_downloader.py:558
 #: src/app/handlers/user/media_downloader.py:630
 msgid "Downloaded by"
-msgstr "📥 Downloaded via @TopLoaderBot"
+msgstr "📥 Downloaded via @youturobot"
 
 #: src/app/handlers/user/media_downloader.py:123
 msgid "Effect type not found"

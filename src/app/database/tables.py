@@ -19,7 +19,7 @@ async def create_users_table(conn: Connection):
     query = """ 
         CREATE TABLE IF NOT EXISTS users(
             tg_id BIGINT PRIMARY KEY NOT NULL,
-            username TEXT NOT NULL,
+            username TEXT,
             status TEXT NOT NULL,
             language TEXT NOT NULL,
             created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL

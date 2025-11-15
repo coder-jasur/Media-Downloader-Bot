@@ -19,7 +19,7 @@ msgstr ""
 #: src/app/handlers/start.py:32 src/app/handlers/start.py:38
 msgid "Start text"
 msgstr ""
-"🔥 Привет! Добро пожаловать в @TopLoaderBot.\n"
+"🔥 Привет! Добро пожаловать в @youturobot.\n"
 "\n"
 "С помощью бота вы можете скачать:\n"
 "\n"
@@ -255,7 +255,7 @@ msgstr ""
 "\n"
 "Имя: {}\n"
 "Приглашенные пользователи: {}\n"
-"URL реферала: https://t.me/Toploaderbot?start={}"
+"URL реферала: https://t.me/youturobot?start={}"
 
 #: src/app/handlers/admin/menu/referal.py:85
 msgid "Send only text"
@@ -325,7 +325,7 @@ msgstr ""
 #: src/app/handlers/user/media_downloader.py:558
 #: src/app/handlers/user/media_downloader.py:630
 msgid "Downloaded by"
-msgstr "📥 Скачано через @TopLoaderBot"
+msgstr "📥 Скачано через @youturobot"
 
 #: src/app/handlers/user/media_downloader.py:123
 msgid "Effect type not found"
