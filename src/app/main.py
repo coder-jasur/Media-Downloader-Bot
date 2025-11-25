@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from pathlib import Path
 
 import asyncpg
 from aiogram import Dispatcher, Bot, Router
@@ -15,15 +14,14 @@ from aiogram_dialog import setup_dialogs
 
 from logs.loggger_conf import setup_logging
 from src.app.common.bot_commands import bot_commands
-from src.app.common.db_url import construct_postgresql_url
-from src.app.core.config import Settings
-from src.app.database.queries.users import UserDataBaseActions
-from src.app.database.tables import create_database_tables
 from src.app.common.database_backup import daily_database_sender
+from src.app.common.db_url import construct_postgresql_url
+from src.app.common.requirements_updater import requirements_updater
+from src.app.core.config import Settings
+from src.app.database.tables import create_database_tables
 from src.app.dialogs import register_all_dialogs
 from src.app.handlers import register_all_router
 from src.app.middleware import register_middleware
-from src.app.common.requirements_updater import requirements_updater
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +35,8 @@ async def main():
         dsn,
     )
 
-    user_actions = UserDataBaseActions(pool)
-    path = Path("./users_list.txt")
     async with pool.acquire() as conn:
         await create_database_tables(conn)
-
-    if path.exists():
-        with open(path, 'r') as file:
-            for lien in file:
-                await user_actions.add_user(int(lien.strip()), "someusername", "ru")
-
-
 
     if settings.bot_user_redis:
         key_builder = DefaultKeyBuilder(with_destiny=True)

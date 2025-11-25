@@ -48,7 +48,7 @@ class AllDownloader:
         ]
 
         if media_type in parsing_types:
-            file_path = await asyncio.to_thread(self.instagram_downloader.get_instagram_links, url)
+            file_path = await self.instagram_downloader.get_instagram_links_async(url)
         if media_type == InstagramMediaType.POST:
             file_path = await self.instagram_downloader.instagram_post_downloader(url)
         elif media_type == InstagramMediaType.REELS:

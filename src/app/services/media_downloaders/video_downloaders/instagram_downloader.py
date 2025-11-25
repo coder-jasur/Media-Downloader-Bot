@@ -5,10 +5,11 @@ import re
 import time
 from pathlib import Path
 from typing import Optional, Tuple, List
+import httpx
+from concurrent.futures import ThreadPoolExecutor
 
 import instaloader
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -20,23 +21,99 @@ from src.app.services.media_downloaders.utils.files import get_video_file_name, 
 from src.app.utils.enums.error import DownloadError
 from src.app.utils.enums.general import MediaType
 
-# Setup logging
 logger = logging.getLogger(__name__)
 
 
 class InstagramDownloader:
+    """
+    OPTIMIZATSIYALAR:
+    1. Driver pooling - bir marta ochib qayta ishlatamiz
+    2. Parallel downloads - bir vaqtda bir nechta file yuklaymiz
+    3. httpx bilan direct download - Selenium kerak bo'lmasdan
+    4. Smart retry with exponential backoff
+    5. Connection pooling va reuse
+    """
 
     def __init__(self):
+        self.timeout = 60  # 120 dan 60 ga tushirdik
+        self.max_retries = 3  # 5 dan 3 ga tushirdik
+        self.max_concurrent_downloads = 5  # Parallel downloads soni
 
-        self.timeout = 120
+        # Instaloader sozlamalari
         self.loader = instaloader.Instaloader(
             download_comments=False,
             save_metadata=False,
-            compress_json=False
+            compress_json=False,
+            max_connection_attempts=2  # Kam urinish
         )
 
-        self.timeout = 120
-        self.max_retries = 5
+        # HTTP client pooling uchun
+        self.http_client = None
+        self._driver = None
+        self._driver_lock = asyncio.Lock()
+
+        # Thread pool parallel downloads uchun
+        self.executor = ThreadPoolExecutor(max_workers=self.max_concurrent_downloads)
+
+    async def _get_http_client(self):
+        """Reusable HTTP client"""
+        if self.http_client is None:
+            self.http_client = httpx.AsyncClient(
+                timeout=self.timeout,
+                limits=httpx.Limits(
+                    max_connections=20,
+                    max_keepalive_connections=10
+                ),
+                follow_redirects=True
+            )
+        return self.http_client
+
+    async def _get_driver(self):
+        """Reusable Selenium driver (pool)"""
+        async with self._driver_lock:
+            if self._driver is None:
+                chrome_options = Options()
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-dev-shm-usage')
+                chrome_options.add_argument('--headless')
+                chrome_options.add_argument('--disable-gpu')
+                chrome_options.add_argument('--disable-images')  # Rasmlarni yuklamaymiz
+                chrome_options.add_argument('--disable-javascript')  # JS ni o'chirish (agar kerak bo'lmasa)
+                chrome_options.add_argument('--blink-settings=imagesEnabled=false')
+                chrome_options.add_argument('--window-size=1920,1080')
+                chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+
+                # Page load strategy - faster
+                chrome_options.page_load_strategy = 'eager'
+
+                self._driver = await asyncio.to_thread(webdriver.Chrome, options=chrome_options)
+
+            return self._driver
+
+    async def close(self):
+        """Cleanup resources"""
+        if self.http_client:
+            await self.http_client.aclose()
+        if self._driver:
+            await asyncio.to_thread(self._driver.quit)
+        self.executor.shutdown(wait=False)
+
+    async def _download_with_httpx(self, url: str, file_path: str) -> bool:
+        """Direct HTTP download - Selenium kerak emas"""
+        try:
+            client = await self._get_http_client()
+
+            async with client.stream('GET', url) as response:
+                response.raise_for_status()
+
+                with open(file_path, 'wb') as f:
+                    async for chunk in response.aiter_bytes(chunk_size=8192):
+                        f.write(chunk)
+
+            return True
+        except Exception as e:
+            logger.error(f"HTTP download error: {e}")
+            return False
 
     async def instagram_reels_downloader(
             self,
@@ -95,26 +172,14 @@ class InstagramDownloader:
             errors.append(DownloadError.DOWNLOAD_ERROR)
             return None, errors
 
-    def setup_driver(self):
-        """Headless Chrome driver sozlash"""
-        chrome_options = Options()
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-
-        return webdriver.Chrome(options=chrome_options)
-
-    def wait_for_download_links(self, driver, timeout=60, check_interval=2):
-        """Download buttonlarini kutish"""
-        print("⏳ Media linklar kutilmoqda...")
+    async def _wait_for_download_links_optimized(self, driver, timeout=30):
+        """Optimized waiting - kamroq vaqt"""
+        logger.info("⏳ Waiting for media links...")
         previous_count = 0
         no_change_count = 0
-        max_no_change = 3
+        check_interval = 1  # 2 dan 1 ga
 
-        for i in range(0, timeout, check_interval):
+        for _ in range(0, timeout, check_interval):
             try:
                 download_buttons = driver.find_elements(
                     By.CSS_SELECTOR, ".abutton.is-success.is-fullwidth.btn-premium.mt-3"
@@ -122,65 +187,59 @@ class InstagramDownloader:
                 current_count = len(download_buttons)
 
                 if current_count > previous_count:
-                    print(f"   📥 {current_count} ta link topildi...")
+                    logger.info(f"📥 Found {current_count} links")
                     previous_count = current_count
                     no_change_count = 0
                 elif current_count > 0:
                     no_change_count += 1
 
-                if no_change_count >= max_no_change and current_count > 0:
+                # 2 marta tekshirish yetarli
+                if no_change_count >= 2 and current_count > 0:
                     break
 
                 driver.execute_script("window.scrollBy(0, 700);")
-                time.sleep(check_interval)
+                await asyncio.sleep(check_interval)
 
             except Exception as e:
-                print(f"ERROR: {e}")
+                logger.error(f"Wait error: {e}")
                 break
 
         return previous_count
 
-    def get_instagram_links(self, instagram_url):
-        driver = self.setup_driver()
+    async def get_instagram_links_async(self, instagram_url: str):
+        """Async version with reusable driver"""
+        driver = await self._get_driver()
         results = []
 
         try:
-            driver.get("https://snapinsta.to/en2")
+            await asyncio.to_thread(driver.get, "https://snapinsta.to/en2")
 
-            # INPUT FIELD
-            fields = WebDriverWait(driver, 15).until(
+            # Wait va input
+            fields = await asyncio.to_thread(
+                WebDriverWait(driver, 10).until,
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".form-control"))
             )
             input_field = next(f for f in fields if f.is_displayed())
 
-            # JS orqali qiymat berish
-            driver.execute_script("""
-                var el = document.querySelector('.form-control');
-                if (el) {
-                    el.value = arguments[0];
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            """, instagram_url)
+            # JS injection
+            await asyncio.to_thread(
+                driver.execute_script,
+                "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true }));",
+                input_field,
+                instagram_url
+            )
 
-            time.sleep(0.5)
-
-            try:
-                input_field.clear()
-                input_field.send_keys(instagram_url)
-            except:
-                driver.execute_script(
-                    "arguments[0].value = arguments[1];", input_field, instagram_url
-                )
-
-            download_button = WebDriverWait(driver, 10).until(
+            # Download button
+            download_button = await asyncio.to_thread(
+                WebDriverWait(driver, 10).until,
                 EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.btn-default"))
             )
-            driver.execute_script("arguments[0].click();", download_button)
+            await asyncio.to_thread(driver.execute_script, "arguments[0].click();", download_button)
 
-            time.sleep(3)
+            await asyncio.sleep(2)  # 3 dan 2 ga
 
-            media_count = self.wait_for_download_links(driver)
+            # Wait for links
+            media_count = await self._wait_for_download_links_optimized(driver, timeout=30)
             if media_count == 0:
                 return []
 
@@ -202,13 +261,9 @@ class InstagramDownloader:
 
             return results
 
-        except Exception:
-            import traceback
-            traceback.print_exc()
+        except Exception as e:
+            logger.error(f"Get links error: {e}")
             return []
-
-        finally:
-            driver.quit()
 
     def _extract_shortcode(self, url: str) -> str:
         m = re.search(r"/(?:p|reel)/([^/?]+)", url)

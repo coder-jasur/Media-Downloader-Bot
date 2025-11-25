@@ -9,7 +9,7 @@ async def download_media_in_internet(url: str, file_name: str, media_type: Media
     if media_type == MediaType.VIDEO:
         save_path = f"./media/videos/{file_name}"
     elif media_type == MediaType.PHOTO:
-        save_path = f"./media/photos/{file_name}"
+        save_path = f"./media/photos/{file_name}" 
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             if response.status == 200:
