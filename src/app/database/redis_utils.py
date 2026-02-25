@@ -18,12 +18,12 @@ async def init_redis(settings):
     return redis
 
 
-redis = None
+
 
 
 async def get_redis(settings: Settings):
+    redis = None
 
-    global redis
     if redis is None:
         redis = await init_redis(settings)
     return redis

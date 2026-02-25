@@ -1,8 +1,13 @@
+from src.app.database.queries.bots import BotDataBaseActions
+from src.app.database.queries.channels import ChannelDataBaseActions
+from src.app.database.queries.referals import ReferalDataBaseActions
+from src.app.keyboards.inline import create_mandatory_subs_keyboard, referals_menu_kbd
+from src.app.utils.i18n import get_translator
+
+
 async def _show_subscriptions_menu_message(message, pool, lang):
     """Message orqali subscription menyu ko'rsatish"""
     _ = get_translator(lang).gettext
-    from src.app.database.queries.channels import ChannelDataBaseActions
-    from src.app.database.queries.bots import BotDataBaseActions
 
     channels = await ChannelDataBaseActions(pool).get_all_channels()
     bots = await BotDataBaseActions(pool).get_all_bots()
@@ -16,7 +21,6 @@ async def _show_subscriptions_menu_message(message, pool, lang):
 async def _show_referrals_menu_message(message, pool, lang):
     """Message orqali referrals menyu ko'rsatish"""
     _ = get_translator(lang).gettext
-    from src.app.database.queries.referals import ReferalDataBaseActions
 
     referrals = await ReferalDataBaseActions(pool).get_all_referals()
 
